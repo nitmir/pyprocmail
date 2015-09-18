@@ -24,7 +24,7 @@ class Statement(object):
     def is_assignment(self):
         return False
     def is_recipe(self):
-        return Flase
+        return False
     
 
 class Comment(Statement):
