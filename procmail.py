@@ -508,7 +508,7 @@ def _parse_recipe(p):
         comment= Comment(p.header.comment_line[1])
     else:
         comment = None
-    header = Header(p.header.number, p.header.flag, lockfile, comment=comment)
+    header = Header(p.header.number, p.header.flags, lockfile, comment=comment)
     conditions = []
     if p.conditions:
         for cond in p.conditions:
