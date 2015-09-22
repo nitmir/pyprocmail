@@ -6,16 +6,48 @@ NL = Suppress(LineEnd())
 
 variable = Word(alphanums.replace('*', ''), alphanums)
 
-comment_raw = Literal('#') + Word(unicodePrintablesSpaces) + LineEnd().suppress()
+# Add some meta comment to the grammar to convey more informations
+title_comment_flag = Literal('title') + Literal(':')
+comment_comment_flag = Literal('comment') + Literal(':')
+
+meta_comment_flag = title_comment_flag | comment_comment_flag
+
+title_comment = (
+    Literal('#').suppress()
+    + title_comment_flag.suppress()
+    + Optional(Word(unicodePrintablesSpaces)).setResultsName('meta_title')
+    + LineEnd().suppress()
+)
+comment_comment = (
+    Literal('#').suppress()
+    + comment_comment_flag.suppress()
+    + Optional(Word(unicodePrintablesSpaces)).setResultsName('meta_comment')
+    + LineEnd().suppress()
+)
+
+meta_comment = title_comment | comment_comment
+
+
+comment_raw = (
+    Literal('#').suppress()
+    + ~meta_comment_flag
+    + ~NL
+    + Optional(Word(unicodePrintablesSpaces))
+    + LineEnd().suppress()
+)
 comment = comment_raw.setResultsName('comment')
+
 
 end_of_line = (LineEnd().suppress() | comment_raw.setResultsName('comment_line'))
 start_line = Optional((ZeroOrMore(Word(' \t'))).suppress())
 
-assignement = variable + ~NL + '=' + ~NL \
-    + (QuotedString('"', "\\") | QuotedString("'", "\\") | Word(unicodePrintables))
-assignements = (
-    OneOrMore(Group(assignement)) + Optional(end_of_line)
+assignement = variable + Optional(
+    ~NL + Literal('=').suppress() +
+    Optional(~NL + (QuotedString('"', "\\") | QuotedString("'", "\\") | Word(unicodePrintables)))
+)
+assignements = ZeroOrMore(meta_comment) + (
+    Group(assignement) +
+    ZeroOrMore(Group(~NL + assignement)) + Optional(end_of_line)
     ).setResultsName('assignements')
 
 substitution = Literal('$') + ~NL + variable
@@ -87,11 +119,20 @@ action = (
     ) + end_of_line
     ).setResultsName('action')
 
-recipe << (colon_line + ZeroOrMore(Group(condition)).setResultsName('conditions') + action)
+recipe << (
+    ZeroOrMore(meta_comment)
+    + colon_line
+    + ZeroOrMore(Group(condition)).setResultsName('conditions')
+    + action
+)
 
-base_statements = statements + StringEnd()
+base_statements = StringStart() + statements + StringEnd()
 
 
 def parse(file, charset="utf-8"):
     with open(file, 'r') as f:
         return (base_statements).parseString(f.read().decode(charset))
+
+
+def parseString(string):
+    return (base_statements).parseString(string)

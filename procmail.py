@@ -1,6 +1,19 @@
 import parser
 
 
+class MetaCommentable(object):
+    meta_title = None
+    meta_comment = None
+
+    def _get_meta(self, ident):
+        s = []
+        if self.meta_title:
+            s.append(u"%s#title: %s\n" % ("    " * ident, self.meta_title))
+        if self.meta_comment:
+            s.append(u"%s#comment: %s\n" % ("    " * ident, self.meta_comment))
+        return "".join(s)
+
+
 class Commentable(object):
     """Mixin class for commentable procmail objects"""
     comment = None
@@ -18,6 +31,7 @@ class Commentable(object):
 class Statement(object):
     """Base classe for procmail's statements"""
     comment = ""
+    id = None
 
     def is_statement(self):
         return True
@@ -45,15 +59,27 @@ class Comment(Statement):
         return True
 
 
-class Assignment(Statement, Commentable):
+class Assignment(Statement, Commentable, MetaCommentable):
     """Variable names are customarily upper case."""
-    def __init__(self, variable, value=None, comment=None):
-        self.variable = variable
-        self.value = value
+    def __init__(self, variables, comment=None, meta_title=None, meta_comment=None):
+        self.variables = variables  # list of (variable_name, variable_value)
         self.comment = comment
+        self.meta_comment = meta_comment
+        self.meta_title = meta_title
 
     def render(self, ident=0):
-        return u"%s%s='%s'%s" % ("    " * ident, self.variable, self.value, self._get_comment())
+        variables = []
+        for name, value in self.variables:
+            if value:
+                variables.append('%s="%s"' % (name, value))
+            else:
+                variables.append(name)
+        return u"".join(
+            self._get_meta(ident),
+            "    " * ident,
+            " ".join(variables),
+            self._get_comment()
+        )
 
     def is_assignment(self):
         return True
@@ -499,7 +525,7 @@ class ActionNested(Action, list):
         return True
 
 
-class Recipe(Statement):
+class Recipe(Statement, MetaCommentable):
     """
     Recipes consist of three parts:
 
@@ -539,22 +565,29 @@ class ProcmailRc(list):
 
 
 def _parse_comment(p):
-    return Comment(p.comment[1])
+    return Comment(p.comment[0])
 
 
 def _parse_assignements(p):
-    stmt = []
     if p.assignements.comment_line:
-        comment = Comment(p.assignements.comment_line[1])
+        comment = Comment(p.assignements.comment_line[0])
     else:
         comment = None
+    meta_title = p.meta_title if p.meta_title else None
+    meta_comment = p.meta_comment if p.meta_comment else None
+    variables = []
     for assignment in p.assignements:
         if isinstance(assignment, parser.ParseResults):
-            if len(assignment) >= 3:
-                stmt.append(Assignment(assignment[0], assignment[2], comment=comment))
+            if len(assignment) >= 2:
+                variables.append((assignment[0], assignment[1]))
             else:
-                stmt.append(Assignment(assignment[0], comment=comment))
-    return stmt
+                variables.append((assignment[0], None))
+    return Assignment(
+        variables,
+        comment=comment,
+        meta_title=meta_title,
+        meta_comment=meta_comment
+    )
 
 
 def _parse_condition(p, comment=None):
@@ -592,7 +625,7 @@ def _parse_recipe(p):
         else:
             lockfile = True
     if p.header.comment_line:
-        comment = Comment(p.header.comment_line[1])
+        comment = Comment(p.header.comment_line[0])
     else:
         comment = None
     header = Header(p.header.number, "".join(p.header.flags), lockfile, comment=comment)
@@ -600,12 +633,12 @@ def _parse_recipe(p):
     if p.conditions:
         for cond in p.conditions:
             if cond.comment_line:
-                comment = Comment(cond.comment_line[1])
+                comment = Comment(cond.comment_line[0])
             else:
                 comment = None
             conditions.append(_parse_condition(cond, comment=comment))
     if p.action.comment_line:
-        comment = Comment(p.action.comment_line[1])
+        comment = Comment(p.action.comment_line[0])
     else:
         comment = None
     if p.action.statements:
@@ -623,21 +656,40 @@ def _parse_recipe(p):
         action = ActionSave(p.action.path, comment=comment)
     else:
         raise RuntimeError("Unknown action %r" % p.action)
-    return Recipe(header, action, conditions)
+    return Recipe(
+        header, action, conditions,
+        meta_title=p.meta_title if p.meta_title else None,
+        meta_comment=p.meta_comment if p.meta_comment else None
+    )
+
+
+def set_id(stmts, prefix=""):
+    i = 0
+    for stmt in stmts:
+        stmt.id = "%s%s" % (prefix, i)
+        if stmt.is_recipe() and stmt.action.is_nested():
+            set_id(stmt.action, stmt.id + ".")
+        i += 1
 
 
 def _parse_statements(p):
     stmt = []
     for s in p:
         if s.assignements:
-            stmt.extend(_parse_assignements(s))
+            stmt.append(_parse_assignements(s))
         elif s.comment:
             stmt.append(_parse_comment(s))
         elif s.header:
             stmt.append(_parse_recipe(s))
+    set_id(stmt)
     return stmt
 
 
 def parse(file):
     p = parser.parse(file)
+    return ProcmailRc(_parse_statements(p))
+
+
+def parseString(string):
+    p = parser.parseString(string)
     return ProcmailRc(_parse_statements(p))
