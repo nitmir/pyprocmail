@@ -483,18 +483,16 @@ class ActionSave(Action, Commentable):
         return u"%s%s%s" % ("    " * ident, self.path, self._get_comment())
 
 
-class ActionNested(Action):
+class ActionNested(Action, list):
     """
     Instead of a single action line, an entire block of recipes can be used when the condition
     matches.
     The stuff between the braces can be any valid Procmail construct
     """
-    def __init__(self, statements=None):
-        self.statements = [] if statements is None else statements
 
     def render(self, ident=0):
         return u"%s{\n%s\n%s}\n" % (
-            "    " * ident, "\n".join(s.render(ident+1) for s in self.statements), "    " * ident
+            "    " * ident, "\n".join(s.render(ident+1) for s in self), "    " * ident
         )
 
     def is_nested(self):
@@ -509,32 +507,35 @@ class Recipe(Statement):
     A list of conditions (may be empty) which are instance of `Condition` (use subclasses)
     An action instance of `Action` (use subclasses)
     """
-    def __init__(self, header, action, conditions=None):
+    def __init__(self, header, action, conditions=None, meta_title=None, meta_comment=None):
         self.header = header
         self.action = action
         self.conditions = [] if conditions is None else conditions
+        self.meta_title = meta_title
+        self.meta_comment = meta_comment
 
     def is_recipe(self):
         return True
 
     def render(self, ident=0):
         s = []
+        s.append("\n")
+        s.append(self._get_meta(ident))
         s.append(self.header.render(ident))
         s.append("\n")
         for cond in self.conditions:
             s.append(cond.render(ident))
             s.append("\n")
         s.append(self.action.render(ident))
+        s.append("\n")
         return u"".join(s)
 
 
-class ProcmailRc(object):
+class ProcmailRc(list):
     """A list of `Statement` objetcs (use subclasses)"""
-    def __init__(self, statements):
-        self.statements = statements
 
     def render(self):
-        return u"\n".join(s.render() for s in self.statements)
+        return u"\n".join(s.render() for s in self)
 
 
 def _parse_comment(p):
@@ -608,7 +609,7 @@ def _parse_recipe(p):
     else:
         comment = None
     if p.action.statements:
-        action = ActionNested(statements=_parse_statements(p.action.statements))
+        action = ActionNested(_parse_statements(p.action.statements))
     elif p.action.forward:
         action = ActionForward(p.action.forward.asList(), comment=comment)
     elif p.action.shell:
