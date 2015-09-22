@@ -30,7 +30,6 @@ class Commentable(object):
 
 class Statement(object):
     """Base classe for procmail's statements"""
-    comment = ""
     id = None
 
     def is_statement(self):
