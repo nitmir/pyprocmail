@@ -1,3 +1,4 @@
+# -*- coding: utf-8 -*-
 from pyparsing import *
 unicodePrintables = u''.join(unichr(c) for c in xrange(65536) if not unichr(c).isspace())
 unicodePrintablesSpaces = unicodePrintables + ' \t'
