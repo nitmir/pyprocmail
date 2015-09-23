@@ -33,6 +33,9 @@ class Statement(object):
     """Base classe for procmail's statements"""
     id = None
 
+    is_first = False
+    is_last = False
+
     def is_statement(self):
         return True
 
@@ -670,6 +673,8 @@ def set_id(stmts, prefix=""):
         if stmt.is_recipe() and stmt.action.is_nested():
             set_id(stmt.action, stmt.id + ".")
         i += 1
+    stmts[0].is_first = True
+    stmts[-1].is_last = True
 
 
 def _parse_statements(p):
