@@ -562,6 +562,15 @@ class Recipe(Statement, MetaCommentable):
     def is_recipe(self):
         return True
 
+    def __getitem__(self, index):
+        return self.action[index]
+
+    def __setitem__(self, index, value):
+        self.action[index] = value
+
+    def __len__(self):
+        return len(self.action)
+
     def render(self, ident=0):
         s = []
         s.append("\n")
