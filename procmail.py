@@ -595,6 +595,10 @@ class ProcmailRc(list):
         return u"\n".join(s.render() for s in self)
 
 
+    def write(self, file, charset="utf-8"):
+        with open(file, 'w') as f:
+            f.write(self.render().encode(charset))
+
 def _parse_comment(p):
     return Comment(p.comment[0])
 
