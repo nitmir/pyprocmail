@@ -70,7 +70,7 @@ flag = Literal('A') | Literal('a') | Literal('B') | Literal('b') | Literal('c') 
     | Literal('D') | Literal('E') | Literal('e') | Literal('f') | Literal('H') \
     | Literal('h') | Literal('i') | Literal('r') | Literal('W') | Literal('w')
 flags = ZeroOrMore(flag).setResultsName('flags')
-lockfile = (Literal(':') + ~NL + Word(printables)).setResultsName('lockfile')
+lockfile = (Literal(':') + Optional(~NL + Word(printables))).setResultsName('lockfile')
 colon_line = (
     start_line + ~NL + Literal(':').suppress() + ~NL + Word(nums).setResultsName('number')
     + Optional(~NL + flags) + Optional(~NL + lockfile) + end_of_line
