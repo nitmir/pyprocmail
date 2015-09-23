@@ -85,12 +85,12 @@ class Assignment(Statement, Commentable, MetaCommentable):
                 variables.append('%s="%s"' % (name, value))
             else:
                 variables.append(name)
-        return u"".join(
+        return u"".join([
             self._get_meta(ident),
             "    " * ident,
             " ".join(variables),
             self._get_comment()
-        )
+        ])
 
     def is_assignment(self):
         return True
@@ -340,7 +340,7 @@ class ConditionShell(Condition):
         self.comment = comment
 
     def pre_render(self):
-        return u"?%s" % self.cmd
+        return u"? %s" % self.cmd
 
     def is_shell(self):
         return True
@@ -614,9 +614,9 @@ def _parse_assignements(p):
 
 def _parse_condition(p, comment=None):
     if p.substitute:
-        return ConditionSubstitute(_parse_condition(p.substitute), comment=comment)
+        return ConditionSubstitute(_parse_condition(p.substitute[0]), comment=comment)
     elif p.negate:
-        return ConditionNegate(_parse_condition(p.negate), comment=comment)
+        return ConditionNegate(_parse_condition(p.negate[0]), comment=comment)
     elif p.variable:
         return ConditionVariable(
             p.variable.variable, _parse_condition(p.variable.condition),
@@ -632,7 +632,7 @@ def _parse_condition(p, comment=None):
     elif p.regex:
         return ConditionRegex(p.regex, comment=comment)
     elif p.shell:
-        return ConditionShell(p.shell, comment=comment)
+        return ConditionShell(p.shell[0], comment=comment)
     elif p.size:
         return Condition(p.size.sign, p.size.size, comment=comment)
     else:
@@ -671,7 +671,7 @@ def _parse_recipe(p):
         action = ActionShell(
             p.action.shell.cmd,
             p.action.shell.variable,
-            p.action.shell.lockfile,
+            p.action.shell.lockfile[1],
             comment=comment
         )
     elif p.action.path:
