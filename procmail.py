@@ -48,6 +48,8 @@ class Statement(object):
     def is_recipe(self):
         return False
 
+    def gen_title(self):
+        return repr(self)
 
 class Comment(Statement):
     """Older versions are a bit picky about where they accept comments and whitespace.
@@ -60,6 +62,12 @@ class Comment(Statement):
 
     def is_comment(self):
         return True
+
+    def gen_title(self):
+        if len(self.str) > 10:
+            return u"# %s…" % self.str[:10]
+        else:
+            return u"# %s" % self.str
 
 
 class Assignment(Statement, Commentable, MetaCommentable):
@@ -87,6 +95,14 @@ class Assignment(Statement, Commentable, MetaCommentable):
     def is_assignment(self):
         return True
 
+    def gen_title(self):
+        susp = u""
+        if len(self.variables)>1:
+            susp = u"…"
+        if len(self.variables[0][0]) + len(self.variables[0][1]) > 10:
+            susp = u"…"
+        title = '%s="%s"' % self.variables[0]
+        return "%s%s" % (title[:11], susp)
 
 class Header(Commentable):
     """First line of a procmail recipe"""
@@ -558,6 +574,9 @@ class Recipe(Statement, MetaCommentable):
         s.append(self.action.render(ident))
         s.append("\n")
         return u"".join(s)
+
+    def gen_title(self):
+        return "Recipe %s" % self.id
 
 
 class ProcmailRc(list):
