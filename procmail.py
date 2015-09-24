@@ -732,7 +732,7 @@ def _parse_recipe(p):
         comment = Comment(p.action.comment_line[0])
     else:
         comment = None
-    if p.action.statements:
+    if p.action.statements or p.action.statements is not "":
         action = ActionNested(_parse_statements(p.action.statements))
     elif p.action.forward:
         action = ActionForward(p.action.forward.asList(), comment=comment)
@@ -758,11 +758,13 @@ def set_id(stmts, prefix=""):
     i = 0
     for stmt in stmts:
         stmt.id = "%s%s" % (prefix, i)
+        stmt.parent = stmts
         if stmt.is_recipe() and stmt.action.is_nested():
-            set_id(stmt.action, stmt.id + ".")
+            set_id(stmt, stmt.id + ".")
         i += 1
-    stmts[0].is_first = True
-    stmts[-1].is_last = True
+    if stmts:
+        stmts[0].is_first = True
+        stmts[-1].is_last = True
 
 
 def _parse_statements(p):

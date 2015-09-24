@@ -64,7 +64,7 @@ recipe = Forward()
 statement = ZeroOrMore(LineEnd()).suppress() \
     + (comment | assignements | substitution | recipe) \
     + ZeroOrMore(LineEnd()).suppress()
-statements = OneOrMore(Group(statement))
+statements = ZeroOrMore(Group(statement))
 
 flag = Literal('A') | Literal('a') | Literal('B') | Literal('b') | Literal('c') \
     | Literal('D') | Literal('E') | Literal('e') | Literal('f') | Literal('H') \
