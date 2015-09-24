@@ -690,9 +690,9 @@ def _parse_assignements(p):
 
 def _parse_condition(p, comment=None):
     if p.substitute:
-        return ConditionSubstitute(_parse_condition(p.substitute[0]), comment=comment)
+        return ConditionSubstitute(_parse_condition(p.substitute), comment=comment)
     elif p.negate:
-        return ConditionNegate(_parse_condition(p.negate[0]), comment=comment)
+        return ConditionNegate(_parse_condition(p.negate), comment=comment)
     elif p.variable:
         return ConditionVariable(
             p.variable.variable, _parse_condition(p.variable.condition),
