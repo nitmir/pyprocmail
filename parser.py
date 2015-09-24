@@ -84,15 +84,15 @@ condition_size = (Literal('>') | Literal('<')).setResultsName("sign") \
 condition_shell = Literal('?').suppress() + Word(unicodePrintablesSpaces)
 condition << (
     (
-        variable.setResultsName("variable") + Literal('??') + condition.setResultsName("condition")
+        variable.setResultsName("variable") + Literal('??') + Group(condition).setResultsName("condition")
     ).setResultsName("variable") |
     condition_size.setResultsName("size") |
     condition_shell.setResultsName("shell") |
-    (Literal('!').suppress() + condition).setResultsName("negate") |
-    (Literal('$').suppress() + condition).setResultsName("substitute") |
+    (Literal('!').suppress() + Group(condition).setResultsName("negate")) |
+    (Literal('$').suppress() + Group(condition).setResultsName("substitute")) |
     (
         Word(nums).setResultsName("x") + Literal('^').suppress() + Word(nums).setResultsName("y") +
-        condition.setResultsName("condition")
+        Group(condition).setResultsName("condition")
     ).setResultsName("score") |
     condition_regex.setResultsName("regex")
     )
