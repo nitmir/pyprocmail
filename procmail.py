@@ -627,6 +627,9 @@ class Recipe(Statement, MetaCommentable):
     def __len__(self):
         return len(self.action)
 
+    def remove(self, item):
+        return self.action.remove(item)
+
     def render(self, ident=0):
         s = []
         s.append("\n")
@@ -646,6 +649,10 @@ class Recipe(Statement, MetaCommentable):
 
 class ProcmailRc(list):
     """A list of `Statement` objetcs (use subclasses)"""
+
+    def __init__(self, *args, **kwargs):
+        super(ProcmailRc, self).__init__(*args, **kwargs)
+        set_id(self)
 
     def render(self):
         return u"\n".join(s.render() for s in self)
@@ -776,7 +783,6 @@ def _parse_statements(p):
             stmt.append(_parse_comment(s))
         elif s.header:
             stmt.append(_parse_recipe(s))
-    set_id(stmt)
     return stmt
 
 
