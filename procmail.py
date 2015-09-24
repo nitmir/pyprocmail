@@ -293,6 +293,9 @@ class Header(Commentable):
 
 class Condition(Commentable):
     """Base class for procmail's conditions"""
+
+    type = None
+
     def render(self, ident=0):
         return u"%s* %s%s" % ("    " * ident, self.pre_render(), self._get_comment())
 
@@ -320,9 +323,15 @@ class Condition(Commentable):
     def is_score(self):
         return False
 
+    def is_nested(self):
+        return False
+
 
 class ConditionEmpty(Condition):
     """The empty condition, always match"""
+
+    type = "empty"
+
     def __init__(self, comment=None):
         self.comment = comment
 
@@ -335,6 +344,9 @@ class ConditionEmpty(Condition):
 
 class ConditionShell(Condition):
     """Test exit code of external program"""
+
+    type = "shell"
+
     def __init__(self, cmd, comment=None):
         self.cmd = cmd
         self.comment = comment
@@ -348,6 +360,9 @@ class ConditionShell(Condition):
 
 class ConditionSize(Condition):
     """Test size of message part"""
+
+    type = "size"
+
     def __init__(self, sign, size, comment=None):
         self.sign = sign
         self.size = size
@@ -362,6 +377,9 @@ class ConditionSize(Condition):
 
 class ConditionRegex(Condition):
     """Tests with regular expressions """
+
+    type = "regex"
+
     def __init__(self, regex, comment=None):
         self.regex = regex
         self.comment = comment
@@ -375,6 +393,9 @@ class ConditionRegex(Condition):
 
 class ConditionVariable(Condition):
     """Test the value of `variable` against `condition`"""
+
+    type = "variable"
+
     def __init__(self, variable, condition, comment=None):
         self.variable = variable
         self.condition = condition
@@ -386,9 +407,15 @@ class ConditionVariable(Condition):
     def is_variable(self):
         return True
 
+    def is_nested(self):
+        return True
+
 
 class ConditionNegate(Condition):
     """Negation"""
+
+    type = "negate"
+
     def __init__(self, condition, comment=None):
         self.condition = condition
         self.comment = comment
@@ -397,6 +424,9 @@ class ConditionNegate(Condition):
         return u"! %s" % self.condition.pre_render()
 
     def is_negate(self):
+        return True
+
+    def is_nested(self):
         return True
 
 
@@ -412,6 +442,9 @@ class ConditionSubstitute(Condition):
     backslashes doubled.)
     You can stack multiple $ flags to force multiple substitution passes.
     """
+
+    type = "subtitute"
+
     def __init__(self, condition, comment=None):
         self.condition = condition
         self.comment = comment
@@ -420,6 +453,9 @@ class ConditionSubstitute(Condition):
         return u"$ %s" % self.condition.pre_render()
 
     def is_substitute(self):
+        return True
+
+    def is_nested(self):
         return True
 
 
@@ -433,6 +469,9 @@ class ConditionScore(Condition):
     The final score is in the $? pseudovariable and the action is taken
     if the final score is positive.
     """
+
+    type = "score"
+
     def __init__(self, x, y, condition, comment=None):
         self.x = x
         self.y = y
@@ -445,9 +484,15 @@ class ConditionScore(Condition):
     def is_score(self):
         return True
 
+    def is_nested(self):
+        return True
+
 
 class Action(object):
     """Base class for procmail's actions"""
+
+    type = None
+
     def is_save(self):
         return False
 
@@ -463,6 +508,9 @@ class Action(object):
 
 class ActionForward(Action, Commentable):
     """Forward to other address(es)"""
+
+    type = "forward"
+
     def __init__(self, recipients=None, comment=None):
         self.recipients = [] if recipients is None else recipients
         self.comment = comment
@@ -475,6 +523,9 @@ class ActionForward(Action, Commentable):
 
 
 class ActionShell(Action, Commentable):
+
+    type = "shell"
+
     def __init__(self, cmd, variable=None, lockfile=None, comment=None):
         """The pipeline is expected to save the message somewhere;
         you can play with the recipe's flags to tell Procmail otherwise.
@@ -517,6 +568,9 @@ class ActionSave(Action, Commentable):
         You can list several directories at the same time. Only one file will actually be written,
         the rest will be hard links.
     """
+
+    type = "save"
+
     def __init__(self, path, comment=None):
         self.path = path
         self.comment = comment
@@ -534,6 +588,8 @@ class ActionNested(Action, list):
     matches.
     The stuff between the braces can be any valid Procmail construct
     """
+
+    type = "nested"
 
     def render(self, ident=0):
         return u"%s{\n%s\n%s}\n" % (
