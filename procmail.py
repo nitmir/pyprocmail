@@ -710,7 +710,7 @@ def _parse_condition(p, comment=None):
     elif p.shell:
         return ConditionShell(p.shell[0], comment=comment)
     elif p.size:
-        return Condition(p.size.sign, p.size.size, comment=comment)
+        return ConditionSize(p.size.sign, p.size.size, comment=comment)
     else:
         return ConditionEmpty(comment=comment)
 
