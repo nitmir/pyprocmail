@@ -83,9 +83,10 @@ class Comment(Statement):
 
 class Assignment(Statement, Commentable, MetaCommentable):
     """Variable names are customarily upper case."""
-    def __init__(self, variables, comment=None, meta_title=None, meta_comment=None):
+    def __init__(self, variables, quote='"', comment=None, meta_title=None, meta_comment=None):
         self.variables = variables  # list of (variable_name, variable_value)
         self.comment = comment
+        self.quote = quote
         self.meta_comment = meta_comment
         self.meta_title = meta_title
 
@@ -93,7 +94,7 @@ class Assignment(Statement, Commentable, MetaCommentable):
         variables = []
         for name, value in self.variables:
             if value:
-                variables.append('%s="%s"' % (name, value))
+                variables.append('%s=%s%s%s' % (name, self.quote, value, self.quote))
             else:
                 variables.append(name)
         return u"".join([
@@ -726,8 +727,17 @@ def _parse_assignements(p):
                 variables.append((assignment[0], assignment[1]))
             else:
                 variables.append((assignment[0], None))
+    if p.shell_eval:
+        quote = '`'
+    elif p.single_quote:
+        quote = "'"
+    elif p.double_quote:
+        quote = '"'
+    else:
+        quote = None
     return Assignment(
         variables,
+        quote=quote,
         comment=comment,
         meta_title=meta_title,
         meta_comment=meta_comment

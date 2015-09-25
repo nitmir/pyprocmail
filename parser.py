@@ -53,7 +53,12 @@ start_line = Optional((ZeroOrMore(Word(' \t'))).suppress())
 
 assignement = variable + Optional(
     ~NL + Literal('=').suppress() +
-    Optional(~NL + (QuotedString('"', "\\") | QuotedString("'", "\\") | Word(unicodePrintables)))
+    Optional(~NL + (
+        QuotedString('"', "\\").setResultsName('double_quote')
+        | QuotedString("'", "\\").setResultsName('single_quote')
+        | QuotedString("`", "\\").setResultsName('shell_eval')
+        | Word(unicodePrintables)
+    ))
 )
 assignements = ZeroOrMore(meta_comment) + (
     Group(assignement) +
