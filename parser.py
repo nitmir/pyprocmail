@@ -42,8 +42,7 @@ meta_comment = title_comment | comment_comment
 comment_raw = (
     Literal('#').suppress()
     + ~meta_comment_flag
-    + ~NL
-    + Optional(Word(unicodePrintablesSpaces))
+    + Optional(~NL + Word(unicodePrintablesSpaces))
     + LineEnd().suppress()
 )
 comment = comment_raw.setResultsName('comment')
