@@ -693,6 +693,8 @@ class Recipe(Statement, MetaCommentable):
 class ProcmailRc(list):
     """A list of `Statement` objetcs (use subclasses)"""
 
+    id = ""
+
     def __init__(self, *args, **kwargs):
         super(ProcmailRc, self).__init__(*args, **kwargs)
         set_id(self)
