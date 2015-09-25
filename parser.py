@@ -15,7 +15,7 @@ unicodePrintablesSpaces = unicodePrintables + u' \t\xa0'
 NL = Suppress(LineEnd())
 
 
-variable = Word(alphanums.replace('*', ''), alphanums)
+variable = Word(printables.replace('*', ''), printables)
 
 # Add some meta comment to the grammar to convey more informations
 title_comment_flag = Literal('title') + Literal(':')
