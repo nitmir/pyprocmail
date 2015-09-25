@@ -83,18 +83,20 @@ class Comment(Statement):
 
 class Assignment(Statement, Commentable, MetaCommentable):
     """Variable names are customarily upper case."""
-    def __init__(self, variables, quote='"', comment=None, meta_title=None, meta_comment=None):
+    def __init__(self, variables, comment=None, meta_title=None, meta_comment=None):
         self.variables = variables  # list of (variable_name, variable_value)
         self.comment = comment
-        self.quote = quote
         self.meta_comment = meta_comment
         self.meta_title = meta_title
 
     def render(self, ident=0):
         variables = []
-        for name, value in self.variables:
+        for name, value, quote in self.variables:
             if value:
-                variables.append('%s=%s%s%s' % (name, self.quote, value, self.quote))
+                if quote:
+                    variables.append('%s=%s%s%s' % (name, quote, value.replace(quote, '\\%s' % quote), quote))
+                else:
+                    variables.append('%s=%s' % (name, value))
             else:
                 variables.append(name)
         return u"".join([
@@ -113,7 +115,7 @@ class Assignment(Statement, Commentable, MetaCommentable):
             susp = u"…"
         if len(self.variables[0][0]) + len(self.variables[0][1]) > 10:
             susp = u"…"
-        title = '%s="%s"' % self.variables[0]
+        title = '%s="%s"' % (self.variables[0][0], self.variables[0][1])
         return "%s%s" % (title[:11], susp)
 
 
@@ -730,22 +732,21 @@ def _parse_assignements(p):
     meta_comment = p.meta_comment if p.meta_comment else None
     variables = []
     for assignment in p.assignements:
+        if assignment.shell_eval:
+            quote = '`'
+        elif assignment.single_quote:
+            quote = "'"
+        elif assignment.double_quote:
+            quote = '"'
+        else:
+            quote = None
         if isinstance(assignment, parser.ParseResults):
             if len(assignment) >= 2:
-                variables.append((assignment[0], assignment[1]))
+                variables.append((assignment[0], assignment[1], quote))
             else:
-                variables.append((assignment[0], None))
-    if p.shell_eval:
-        quote = '`'
-    elif p.single_quote:
-        quote = "'"
-    elif p.double_quote:
-        quote = '"'
-    else:
-        quote = None
+                variables.append((assignment[0], None, quote))
     return Assignment(
         variables,
-        quote=quote,
         comment=comment,
         meta_title=meta_title,
         meta_comment=meta_comment
