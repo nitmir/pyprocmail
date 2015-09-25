@@ -14,8 +14,12 @@ unicodePrintables = u''.join(unichr(c) for c in xrange(65536) if not unichr(c).i
 unicodePrintablesSpaces = unicodePrintables + u' \t\xa0'
 NL = Suppress(LineEnd())
 
-
-variable = Word(printables.replace('*', ''), printables)
+variable_start = printables
+variable_charset = printables
+for char in ['{', '!', '|', '*', ':', '=', '}']:
+    variable_start = variable_start.replace(char, '')
+    variable_charset = variable_charset.replace(char, '')
+variable = Word(variable_start, variable_charset)
 
 # Add some meta comment to the grammar to convey more informations
 title_comment_flag = Literal('title') + Literal(':')
