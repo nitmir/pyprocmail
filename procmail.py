@@ -649,12 +649,14 @@ class Recipe(Statement, MetaCommentable):
     A list of conditions (may be empty) which are instance of `Condition` (use subclasses)
     An action instance of `Action` (use subclasses)
     """
-    def __init__(self, header, action, conditions=None, meta_title=None, meta_comment=None):
+    def __init__(self, header, action, conditions=None, meta_title=None, meta_comment=None, comment_condition=None, comment_action=None):
         self.header = header
         self.action = action
         self.conditions = [] if conditions is None else conditions
         self.meta_title = meta_title
         self.meta_comment = meta_comment
+        self.comment_condition = comment_condition
+        self.comment_action = comment_action
 
     def is_recipe(self):
         return True
@@ -680,8 +682,14 @@ class Recipe(Statement, MetaCommentable):
         s.append(self._get_meta(ident))
         s.append(self.header.render(ident))
         s.append("\n")
+        if self.comment_condition:
+            s.append(self.comment_condition.render(ident))
+            s.append("\n")
         for cond in self.conditions:
             s.append(cond.render(ident))
+            s.append("\n")
+        if self.comment_action:
+            s.append(self.comment_action.render(ident))
             s.append("\n")
         s.append(self.action.render(ident))
         s.append("\n")
@@ -813,7 +821,9 @@ def _parse_recipe(p):
     return Recipe(
         header, action, conditions,
         meta_title=p.meta_title if p.meta_title else None,
-        meta_comment=p.meta_comment if p.meta_comment else None
+        meta_comment=p.meta_comment if p.meta_comment else None,
+        comment_condition=Comment(p.comment_condition[0]) if p.comment_condition else None,
+        comment_action=Comment(p.comment_action[0]) if p.comment_action else None
     )
 
 

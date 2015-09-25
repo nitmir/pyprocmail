@@ -139,7 +139,9 @@ action = (
 recipe << (
     ZeroOrMore(meta_comment)
     + colon_line
+    + Optional(comment_raw).setResultsName('comment_condition')
     + ZeroOrMore(Group(condition)).setResultsName('conditions')
+    + Optional(comment_raw).setResultsName('comment_action')
     + action
 )
 
