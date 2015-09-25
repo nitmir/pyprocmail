@@ -51,6 +51,7 @@ class Statement(object):
     def gen_title(self):
         return repr(self)
 
+
 class Comment(Statement):
     """Older versions are a bit picky about where they accept comments and whitespace.
     Never put a comment on the same line as a regular expression."""
@@ -97,12 +98,13 @@ class Assignment(Statement, Commentable, MetaCommentable):
 
     def gen_title(self):
         susp = u""
-        if len(self.variables)>1:
+        if len(self.variables) > 1:
             susp = u"…"
         if len(self.variables[0][0]) + len(self.variables[0][1]) > 10:
             susp = u"…"
         title = '%s="%s"' % self.variables[0]
         return "%s%s" % (title[:11], susp)
+
 
 class Header(Commentable):
     """First line of a procmail recipe"""
@@ -290,9 +292,11 @@ class Header(Commentable):
     def D(self, value):
         return self._set_flag("D", value)
 
+
 def register_type(classe):
     classe.__bases__[0]._types[classe.type] = classe
     return classe
+
 
 class Typed(object):
 
@@ -686,7 +690,6 @@ class ProcmailRc(list):
     def render(self):
         return u"\n".join(s.render() for s in self)
 
-
     def write(self, file, charset="utf-8"):
         data = self.render().encode(charset)
         with open(file, 'w') as f:
@@ -778,7 +781,7 @@ def _parse_recipe(p):
         action = ActionShell(
             p.action.shell.cmd,
             p.action.shell.variable,
-            p.action.shell.lockfile[1] if len(p.action.shell.lockfile)>1 else None,
+            p.action.shell.lockfile[1] if len(p.action.shell.lockfile) > 1 else None,
             comment=comment
         )
     elif p.action.path:

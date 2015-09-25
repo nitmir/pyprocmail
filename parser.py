@@ -84,7 +84,9 @@ condition_size = (Literal('>') | Literal('<')).setResultsName("sign") \
 condition_shell = Literal('?').suppress() + Word(unicodePrintablesSpaces)
 condition << (
     (
-        variable.setResultsName("variable") + Literal('??') + Group(condition).setResultsName("condition")
+        variable.setResultsName("variable")
+        + Literal('??')
+        + Group(condition).setResultsName("condition")
     ).setResultsName("variable") |
     condition_size.setResultsName("size") |
     condition_shell.setResultsName("shell") |
