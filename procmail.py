@@ -290,11 +290,25 @@ class Header(Commentable):
     def D(self, value):
         return self._set_flag("D", value)
 
+def register_type(classe):
+    classe.__bases__[0]._types[classe.type] = classe
+    return classe
 
-class Condition(Commentable):
-    """Base class for procmail's conditions"""
+class Typed(object):
 
     type = None
+
+    _types = {}
+
+    @classmethod
+    def from_type(cls, type):
+        return cls._types[type]
+
+
+class Condition(Commentable, Typed):
+    """Base class for procmail's conditions"""
+
+    _types = {}
 
     def render(self, ident=0):
         return u"%s* %s%s" % ("    " * ident, self.pre_render(), self._get_comment())
@@ -327,6 +341,7 @@ class Condition(Commentable):
         return False
 
 
+@register_type
 class ConditionEmpty(Condition):
     """The empty condition, always match"""
 
@@ -342,6 +357,7 @@ class ConditionEmpty(Condition):
         return True
 
 
+@register_type
 class ConditionShell(Condition):
     """Test exit code of external program"""
 
@@ -358,6 +374,7 @@ class ConditionShell(Condition):
         return True
 
 
+@register_type
 class ConditionSize(Condition):
     """Test size of message part"""
 
@@ -375,6 +392,7 @@ class ConditionSize(Condition):
         return True
 
 
+@register_type
 class ConditionRegex(Condition):
     """Tests with regular expressions """
 
@@ -391,6 +409,7 @@ class ConditionRegex(Condition):
         return True
 
 
+@register_type
 class ConditionVariable(Condition):
     """Test the value of `variable` against `condition`"""
 
@@ -411,6 +430,7 @@ class ConditionVariable(Condition):
         return True
 
 
+@register_type
 class ConditionNegate(Condition):
     """Negation"""
 
@@ -430,6 +450,7 @@ class ConditionNegate(Condition):
         return True
 
 
+@register_type
 class ConditionSubstitute(Condition):
     """
     Subject condition to variable and backtick substitution before actually evaluating
@@ -459,6 +480,7 @@ class ConditionSubstitute(Condition):
         return True
 
 
+@register_type
 class ConditionScore(Condition):
     """
     Scoring: If the condition is true, add a number to the total score.
@@ -488,10 +510,10 @@ class ConditionScore(Condition):
         return True
 
 
-class Action(object):
+class Action(Typed):
     """Base class for procmail's actions"""
 
-    type = None
+    _types = {}
 
     def is_save(self):
         return False
@@ -506,6 +528,7 @@ class Action(object):
         return False
 
 
+@register_type
 class ActionForward(Action, Commentable):
     """Forward to other address(es)"""
 
@@ -522,6 +545,7 @@ class ActionForward(Action, Commentable):
         return True
 
 
+@register_type
 class ActionShell(Action, Commentable):
 
     type = "shell"
@@ -554,6 +578,7 @@ class ActionShell(Action, Commentable):
         return u"%s%s|%s%s%s" % ("    " * ident, variable, self.cmd, lockfile, self._get_comment())
 
 
+@register_type
 class ActionSave(Action, Commentable):
     """
     /path/to/filename
@@ -582,6 +607,7 @@ class ActionSave(Action, Commentable):
         return u"%s%s%s" % ("    " * ident, self.path, self._get_comment())
 
 
+@register_type
 class ActionNested(Action, list):
     """
     Instead of a single action line, an entire block of recipes can be used when the condition
