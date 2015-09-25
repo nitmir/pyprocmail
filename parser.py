@@ -11,7 +11,7 @@
 # (c) 2015 Valentin Samir
 from pyparsing import *
 unicodePrintables = u''.join(unichr(c) for c in xrange(65536) if not unichr(c).isspace())
-unicodePrintablesSpaces = unicodePrintables + ' \t'
+unicodePrintablesSpaces = unicodePrintables + u' \t\xa0'
 NL = Suppress(LineEnd())
 
 
