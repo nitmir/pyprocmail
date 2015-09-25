@@ -106,7 +106,7 @@ class Assignment(Statement, Commentable, MetaCommentable):
 
 class Header(Commentable):
     """First line of a procmail recipe"""
-    def __init__(self, number, flag="", lockfile=None, comment=None):
+    def __init__(self, number='0', flag="", lockfile=None, comment=None):
         if flag == "":
             self._flag = u"Hhb"
         else:
@@ -141,7 +141,7 @@ class Header(Commentable):
         if value and letter not in self._flag:
             self._flag += letter
         elif not value and letter in self._flag:
-            self._flag.replace(letter, "")
+            self._flag = self._flag.replace(letter, "")
 
     @property
     def H(self):
@@ -541,7 +541,7 @@ class ActionForward(Action, Commentable):
     def render(self, ident=0):
         return u"%s! %s%s" % ("    " * ident, " ".join(self.recipients), self._get_comment())
 
-    def is_save(self):
+    def is_forward(self):
         return True
 
 
@@ -656,6 +656,9 @@ class Recipe(Statement, MetaCommentable):
     def remove(self, item):
         return self.action.remove(item)
 
+    def append(self, item):
+        return self.action.append(item)
+
     def render(self, ident=0):
         s = []
         s.append("\n")
@@ -685,8 +688,10 @@ class ProcmailRc(list):
 
 
     def write(self, file, charset="utf-8"):
+        data = self.render().encode(charset)
         with open(file, 'w') as f:
-            f.write(self.render().encode(charset))
+            f.write(data)
+
 
 def _parse_comment(p):
     return Comment(p.comment[0])
@@ -773,7 +778,7 @@ def _parse_recipe(p):
         action = ActionShell(
             p.action.shell.cmd,
             p.action.shell.variable,
-            p.action.shell.lockfile[1],
+            p.action.shell.lockfile[1] if len(p.action.shell.lockfile)>1 else None,
             comment=comment
         )
     elif p.action.path:
