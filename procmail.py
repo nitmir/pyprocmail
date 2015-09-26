@@ -12,6 +12,7 @@
 import parser
 import os
 
+
 class MetaCommentable(object):
     meta_title = None
     meta_comment = None
@@ -94,7 +95,9 @@ class Assignment(Statement, Commentable, MetaCommentable):
         for name, value, quote in self.variables:
             if value:
                 if quote:
-                    variables.append('%s=%s%s%s' % (name, quote, value.replace(quote, '\\%s' % quote), quote))
+                    variables.append(
+                        '%s=%s%s%s' % (name, quote, value.replace(quote, '\\%s' % quote), quote)
+                    )
                 else:
                     variables.append('%s=%s' % (name, value))
             else:
@@ -651,7 +654,10 @@ class Recipe(Statement, MetaCommentable):
     A list of conditions (may be empty) which are instance of `Condition` (use subclasses)
     An action instance of `Action` (use subclasses)
     """
-    def __init__(self, header, action, conditions=None, meta_title=None, meta_comment=None, comment_condition=None, comment_action=None):
+    def __init__(
+        self, header, action, conditions=None, meta_title=None,
+        meta_comment=None, comment_condition=None, comment_action=None
+    ):
         self.header = header
         self.action = action
         self.conditions = [] if conditions is None else conditions
