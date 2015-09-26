@@ -10,7 +10,7 @@
 #
 # (c) 2015 Valentin Samir
 import parser
-
+import os
 
 class MetaCommentable(object):
     meta_title = None
@@ -715,8 +715,9 @@ class ProcmailRc(list):
 
     def write(self, file, charset="utf-8"):
         data = self.render().encode(charset)
-        with open(file, 'w') as f:
+        with open(file + '.new', 'w') as f:
             f.write(data)
+        os.rename(file + '.new', file)
 
 
 def _parse_comment(p):
