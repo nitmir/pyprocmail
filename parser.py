@@ -57,7 +57,7 @@ assignement = variable + Optional(
         QuotedString('"', "\\").setResultsName('double_quote')
         | QuotedString("'", "\\").setResultsName('single_quote')
         | QuotedString("`", "\\").setResultsName('shell_eval')
-        | Word(unicodePrintables)
+        | Word(unicodePrintables).setResultsName('no_quote')
     ))
 )
 assignements = ZeroOrMore(meta_comment) + (

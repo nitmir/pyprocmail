@@ -732,15 +732,15 @@ def _parse_assignements(p):
     meta_comment = p.meta_comment if p.meta_comment else None
     variables = []
     for assignment in p.assignements:
-        if assignment.shell_eval:
-            quote = '`'
-        elif assignment.single_quote:
-            quote = "'"
-        elif assignment.double_quote:
-            quote = '"'
-        else:
-            quote = None
         if isinstance(assignment, parser.ParseResults):
+            if assignment.shell_eval:
+                quote = '`'
+            elif assignment.single_quote:
+                quote = "'"
+            elif assignment.double_quote:
+                quote = '"'
+            else:
+                quote = None
             if len(assignment) >= 2:
                 variables.append((assignment[0], assignment[1], quote))
             else:
