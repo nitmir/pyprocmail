@@ -10,7 +10,13 @@
 #
 # (c) 2015 Valentin Samir
 from pyparsing import *
+
+# This grammar is induced from the file joined quickref.html also avaible at
+# http://www.zer0.org/procmail/quickref.html
+
+# Unicode printables minus spaces
 unicodePrintables = u''.join(unichr(c) for c in xrange(65536) if not unichr(c).isspace())
+# Unicodes spaces minus carriage returnand line break
 unicodeSpaces = u''.join(
     unichr(c) for c in xrange(65536) if unichr(c).isspace() and unichr(c) not in ["\n", "\r"]
 )
@@ -19,8 +25,9 @@ unicodePrintablesSpaces = unicodePrintables + unicodeSpaces
 NL = Suppress(LineEnd())
 CR = Suppress(Literal("\r"))
 
-variable_charset = alphanums + '_'
-variable = Word(variable_charset)
+# Variable names that support affectation
+# use sames rules thant for C languge
+variable = Word(alphas + '_', alphanums + '_')
 
 # Add some meta comment to the grammar to convey more informations
 title_comment_flag = Literal('title') + ~NL + Literal(':')
@@ -45,7 +52,8 @@ comment_comment = (
 
 meta_comment = title_comment | comment_comment
 
-
+# A comment : A '#' + optionally anything except \r and \n
+# ends with a \n
 comment_raw = (
     Literal('#').suppress()
     + ~meta_comment_flag
@@ -55,13 +63,14 @@ comment_raw = (
 )
 comment = comment_raw.setResultsName('comment')
 
-
+# The end of a line may contain a comment line
 end_of_line = (
     (Optional(~NL + CR) + LineEnd().suppress())
     | comment_raw.setResultsName('comment_line')
 )
 start_line = Optional((ZeroOrMore(Word(' \t'))).suppress())
 
+# Assignement as VARNAME="value"
 assignement = variable + Optional(
     ~NL + Literal('=').suppress() +
     Optional(~NL + (
@@ -71,37 +80,66 @@ assignement = variable + Optional(
         | Word(unicodePrintables).setResultsName('no_quote')
     ))
 )
+
+# You can have multiple assignements on the same line
 assignements = ZeroOrMore(meta_comment) + (
     Group(assignement) +
     ZeroOrMore(Group(~NL + assignement)) + Optional(end_of_line)
     ).setResultsName('assignements')
 
-substitution = Literal('$') + ~NL + variable
-substitution |= Literal('$\\') + ~NL + variable
-substitution |= Literal('$') + ~NL + Literal('{') + ~NL + variable + Optional(~NL + Literal(':')) \
-    + ~NL + (Literal('-') | Literal('+')) + ~NL + Word(unicodePrintables.replace('}', '')) + ~NL \
-    + Literal('}')
+
+# Substitution of a variable name by its value
+substitution_variable = (
+    variable
+    | Word(nums)
+    | Literal('#')  # Procmail's command-line arguments,
+    | Literal('$')  # like in the shell: $1 is the first command-line
+    | Literal('-')  # argument, etc.; $@ contains all arguments, and $#
+    | Literal('=')  # contains the number of arguments.
+    | Literal('?')
+    | Literal('@')
+)
+
+substitution = Literal('$') + ~NL + substitution_variable
+substitution |= Literal('$\\') + ~NL + substitution_variable
+substitution |= (
+    Literal('$')
+    + ~NL + Literal('{')
+    + ~NL + substitution_variable
+    + Optional(~NL + Literal(':'))
+    + ~NL + (Literal('-') | Literal('+'))
+    + ~NL + Word(unicodePrintables.replace('}', ''))
+    + ~NL + Literal('}')
+)
 substitution |= QuotedString('`', "\\")
 substitution = substitution.setResultsName('substitution')
 
+# Initialisation of the recursive definition of a recipe
 recipe = Forward()
 
+# The procmails statements
+# I don't think it's valid to find substitution in the midle
+# of nowhere.
 statement = ZeroOrMore(Optional(~NL + CR) + LineEnd()).suppress() \
     + (comment | assignements | substitution | recipe) \
     + ZeroOrMore(Optional(~NL + CR) + LineEnd()).suppress()
 statements = ZeroOrMore(Group(statement))
+
+##### Recipe definition ######
 
 flag = Literal('A') | Literal('a') | Literal('B') | Literal('b') | Literal('c') \
     | Literal('D') | Literal('E') | Literal('e') | Literal('f') | Literal('H') \
     | Literal('h') | Literal('i') | Literal('r') | Literal('W') | Literal('w')
 flags = Optional(flag + ZeroOrMore(~NL + flag)).setResultsName('flags')
 lockfile = (Literal(':') + Optional(~NL + Word(printables))).setResultsName('lockfile')
+# first line of a recipe
 colon_line = (
     start_line + ~NL + Literal(':').suppress() + ~NL + Word(nums).setResultsName('number')
     + Optional(~NL + flags) + Optional(~NL + lockfile) + end_of_line
     ).setResultsName('header')
 
 
+# Definition of a condition
 condition = Forward()
 condition_regex = Word(unicodePrintablesSpaces)
 condition_size = (Literal('>') | Literal('<')).setResultsName("sign") \
@@ -127,6 +165,7 @@ condition << (
     )
 condition = (start_line + ~NL + Literal('*').suppress() + Optional(~NL + condition) + end_of_line)
 
+# Definition of possibles actions
 action_first_char = unicodePrintablesSpaces
 for char in ['{', '!', '|', '*']:
     action_first_char = action_first_char.replace(char, '')
@@ -149,6 +188,7 @@ action = (
     ) + end_of_line
     ).setResultsName('action')
 
+# Finelly recursive definition of a recipe
 recipe << (
     ZeroOrMore(meta_comment)
     + colon_line
@@ -158,6 +198,8 @@ recipe << (
     + action
 )
 
+# From start to end of the procmailrc everithing must
+# be parsed (no garbage)
 base_statements = StringStart() + statements + StringEnd()
 
 

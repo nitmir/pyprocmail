@@ -1,0 +1,1375 @@
+<!doctype html public "-//W3C//DTD HTML 3.2//EN">
+<html>
+<head>
+<title>Procmail Quick Reference Guide</title>
+<meta name="description" content="A quick reference to Procmail's recipe syntax">
+<meta name="keywords" content="procmail, mail processing, mail filtering, syntax, procmailrc syntax">
+<link rev="made"
+href="http://www.iki.fi/era/feedback.html">
+</head>
+<body bgcolor="#fffff0" text="#000000"
+link="#0000ff" vlink="#600060" alink="#ff0000">
+<h1>Procmail Quick Reference Guide</h1>
+<p>
+I'm not sure if this is useful to anyone. Except for small
+tangential remarks, all of this information is available
+straight from the manual. Thus, I might not spend a lot of
+time maintaining this. (Feel free to make changes to your own
+copy. Send me diffs. Thanks.) If there's sufficient interest,
+I may generate a PostScript rendering or something -- 
+<a href="http://www.iki.fi/era/feedback.html">mail me</a> your comments!
+<p>
+This Quick Reference is a companion document to the
+<a href="mini-faq.html">Procmail FAQ</a>
+which is available from
+<a href="http://www.iki.fi/era/procmail/mini-faq.html">http://www.iki.fi/era/procmail/mini-faq.html</a>
+and a number of 
+<a href="index.html#mirrors">mirrors.</a>
+There is also a 
+<a href="links.html">link collection</a>
+with pointers to several good introductory documents
+and a whole slew of other interesting stuff.
+<p>
+This version should be reasonably accurate for version 3.11pre7.
+Bug fixes and new features in newer versions have not yet been
+incorporated, sorry. (Feel free to volunteer&nbsp;...)
+<p>
+
+This Lynx-friendly rendering of the Quick Reference
+was kindly contributed by
+<b>Holger Wahlen.</b> Thanks!
+<p>
+My original tables rendering is not available on-line anymore. 
+<P>
+<h3>
+Disclaimers and Assorted Remarks
+</h3>
+<p>
+A lot of Procmail's defaults can conveniently be changed with 
+compile-time options. Your local default values may vary from
+what is listed here; your local documentation will contain the
+actual defaults used by your Procmail (unless someone foolishly
+recompiled the Procmail binary but didn't remake the manuals
+at the same time).
+<p>
+Sorely missing from this compilation are the options you can pass
+to Procmail (not sure if anybody knows what they do <code>:-)</code>
+and the signals. These are described in the manual.
+<p>
+While other parts of the manual are obviously duplicated here,
+you should not simply skip the manuals. 
+At the risk of stating the obvious, some of the stuff in the
+manuals is only in the manuals, and some of it is important.
+<p>
+(Unfortunately, it turns out that some of the stuff here is <i>not</i>
+in the manuals. Perhaps this can change.)
+<p>
+Bet you thought this is where I was going to say,
+"if you lose mail, it's not my fault".
+Well, it isn't.
+And, this is copyrighted material and so on.
+<h2>
+<a name="toplevel">
+Top-level elements
+</a></h2>
+<dl>
+<dt>
+Comments
+<dd>
+<dl>
+<dt>
+<code># comment ...</code>
+<dd>
+Older versions are a bit picky about where they accept
+comments and whitespace. Never put a comment on the same line
+as a regular expression.
+</dl>
+<dt>
+Assignments
+<dd>
+Variable names are customarily upper case. Procmail's
+built-in pseudovariables are presented 
+<a href="#variables">below.</a>
+<dl>
+<dt>
+<code>VAR1=value VAR2="other value"</code>
+<dd>
+There can be many assignments on the same line.
+If the value contains spaces, you need to use single or double quotes.
+<dt>
+<code>VAR</CODE>
+<dd>
+The same as <CODE>VAR=</CODE> or <CODE>VAR=""</CODE>.
+A lone token on a line is often a mistake; a good <I>lint</I>
+should warn you about this.
+</dl>
+<dt>
+Recipes
+<DD>
+recipes consist of three parts that are explained in detail below:
+<ol>
+<li>
+<a href="#colon-line">Colon line</a>
+(in its simplest form just <code>:0</code>)
+<li>
+<a href="#conditions">Conditions</a>
+(optional -- leave out to do actions unconditionally)
+<li>
+<a href="#actions">Action line</a>
+</ol>
+<dd>
+Note that there must be exactly one colon line for each
+action line, and exactly one action line for each colon line.
+If you want more than one action, group them under
+a set of
+<a href="#braces">braces.</a>
+<dt>
+Substitutions
+<dd>
+Literal elements can be replaced with variable substitutions
+or command substitutions in most places.
+<dl>
+<dt>
+<a name="$variable">
+<code>$VAR</code>
+</a><dd>
+Substitute <code>$VAR</code> 
+with the value of the variable <code>VAR</code>.
+<dd>
+You can also say <code>${VAR}</code> to make the variable's name
+unambiguous (i.e. <code>${VAR}iable</code> expands to the value of
+<code>VAR</code> followed by the literal text "iable", whereas
+<code>$VARiable</code> looks for a variable called <i>VARiable</i>).
+<dd>
+Notice that this will not happen in condition lines 
+unless you include the
+<a href="#dollar">$ modifier.</a>
+<dt>
+<code>$\VAR</code>
+<dd>
+Substitute <code>$\VAR</code> with a version of
+the variable's value where all regular expression special characters
+have been backslash-escaped. 
+This makes the interpolated value suitable for 
+literal matching in condition lines.
+<dd>
+Curiously, the substituted value will always begin with an
+empty pair of parentheses; this is to protect against 
+<a href="mini-faq.html#backslashes">problems with leading backslashes</a>
+in the interpolated value. (See the FAQ for details.)
+<dt>
+<code>${VAR:-value}</code><br>
+<code>${VAR-value}</code>
+<dd>
+Interpolation with default value: 
+Substitute the expression with 
+the value of <code>VAR</code> if it is set, 
+otherwise with the literal replacement text <code>value</code>. 
+<dd>
+<code>VAR</code> is considered to be set if it has a non-null value
+with <code>${VAR:-value}</code>, and merely if it has some value with
+just <code>${VAR-value}</code>
+<dd>
+The shell's other replacement substitution mechanisms, besides 
+<code>${VAR:-value}</code> and <code>${VAR:+value}</code>
+and their colonless variants,
+are not understood by Procmail.
+<dt>
+<code>${VAR:+value}</code><br>
+<code>${VAR+value}</code>
+<dd>
+Interpolation with alternate value:
+Substitute the expression with 
+the literal replacement text <code>value</code> 
+if <code>VAR</code> is set,
+otherwise substitute with nothing. 
+<dd>
+<code>VAR</code> is considered to be set if it has a non-null value
+with <code>${VAR:+value}</code>, and merely if it has some value with
+just <code>${VAR+value}</code>
+<dd>
+The shell's other replacement substitution mechanisms, besides 
+<code>${VAR:-value}</code> and <code>${VAR:+value}</code>
+and their colonless variants,
+are not understood by Procmail.
+<dt>
+<a name="backticks">
+<code>`cmd1 | cmd2`</code>
+</a><dd>
+Substitute <code>`cmd1 | cmd2`</code> with the output of this
+shell command pipeline, just like the same construct works in the
+shell.
+<dd>
+Notice that these are not normal apostrophes (ASCII 39) but
+backticks (ASCII 96).
+</dl>
+</dl>
+<hr>
+<h2>
+<a name="colon-line">
+Colon line
+</a></h2>
+The "colon line" starts every recipe. 
+The first character is always a colon, 
+and the second character is the number zero.
+(Other numbers are possible
+but this is only useful for backwards compatibility.
+<a href="mini-faq.html#zero">See the FAQ</a>
+if you're historically inclined.)
+<h3>
+<a name="locking">
+Locking
+</a></h3>
+If you wonder about locking, 
+<a href="mini-faq.html#locking">the FAQ has an explanation for newbies.</a>
+<dl>
+<dt>
+<code>:0 </code><var>flags</var>
+<dd>
+No locking. 
+<br>
+You don't need locking on forwarding recipes
+and often not on pipelines
+(except when they end up saving to a file).
+<dt>
+<code>:0 </code><var>flags</var><code>:</code>
+<dd>
+Let Procmail figure out lock file to use.
+<dd>
+This should basically always be used when saving to a file,
+either directly or via a pipeline with <code>&#62;&#62;</code>
+<dt>
+<code>:0 </code><var>flags</var><code>:</code><var>lockfile</var>
+<dd>
+Name a lock file to use. Alternatively, use the
+<a href="#lockfile"><code>LOCKFILE</code></a>
+pseudovariable to create a regional lock.
+<dd>
+If you're a newbie, you probably don't need named locks.
+</dl>
+<h3>
+<a name="flags">
+Flags
+</a></h3>
+Flags affect how the following recipe is executed,
+in various ways.
+<p>
+In the absence of any flags, 
+Procmail's default is as if you had used the flags <code>Hhb</code>
+<p>
+<a href="#flag-A"><code>A</code>,</a>
+<a href="#flag-a"><code>a</code>,</a>
+<a href="#flag-B"><code>B</code>,</a>
+<a href="#flag-b"><code>b</code>,</a>
+<a href="#flag-c"><code>c</code>,</a>
+<a href="#flag-D"><code>D</code>,</a>
+<a href="#flag-E"><code>E</code>,</a>
+<a href="#flag-e"><code>e</code>,</a>
+<a href="#flag-f"><code>f</code>,</a>
+<a href="#flag-H"><code>H</code>,</a>
+<a href="#flag-h"><code>h</code>,</a>
+<a href="#flag-i"><code>i</code>,</a>
+<a href="#flag-r"><code>r</code>,</a>
+<a href="#flag-W"><code>W</code>,</a>
+<a href="#flag-w"><code>w</code></a>
+<h4>
+<a name="matching-flags">
+Scope of matching
+</a></h4>
+<dl compact>
+<dt>
+<a name="flag-H">
+<code>H</code>
+</a><dd>
+Condition lines examine the headers of the message (default).
+<dt>
+<a name="flag-B">
+<code>B</code>
+</a><dd>
+Condition lines examine the body of the message (off by default).
+</dl>
+Lone <code>B</code> turns off <code>H</code>;
+use <code>HB</code> to examine both headers and body.
+<p>
+Notice the difference between "scope of matching" and "scope of action."
+<h4>
+Scope of action
+</h4>
+<dl compact>
+<dt>
+<a name="flag-h">
+<code>h</code>
+</a><dd>
+Action line gets fed the headers of the message. 
+<dt>
+<a name="flag-b">
+<code>b</code>
+</a><dd>
+Action line gets fed the body of the message.
+</dl>
+Default is both headers and body. Lone <code>h</code>
+turns off <code>b</code> and vice versa; 
+use <code>hb</code> to explicitly turn on both.
+<p>
+Notice the difference between "scope of matching" and "scope of
+action."
+<h4>
+Flow control
+</h4>
+<dl compact>
+<dt>
+<a name="flag-c">
+<code>c</code>
+</a><dd>
+Clone message and execute the action(s) in a subprocess if the
+conditions match. The parent process continues with the original
+message after the clone process finishes.
+<dt>
+<a name="flag-A">
+<code>A</code>
+</a><dd>
+Execute this recipe if the previous recipe's conditions were met.
+<dt>
+<a name="flag-a">
+<code>a</code>
+</a><dd>
+Execute this recipe if the previous recipe's conditions were met
+and its action(s) were completed successfully.
+<dt>
+<a name="flag-E">
+<code>E</code>
+</a><dd>
+Execute this recipe if the previous recipe's conditions were not met.
+<dt>
+<a name="flag-e">
+<code>e</code>
+</a><dd>
+Execute this recipe if the previous recipe's conditions were met, but 
+its action(s) couldn't be completed.
+</dl>
+<h4>
+Execution mode
+</h4>
+<dl compact>
+<dt>
+<a name="flag-f">
+<code>f</code>
+</a><dd>
+Feed the message to the pipeline on the action line if
+the conditions are met, and continue processing with the
+output of the pipeline (replacing the original message).
+<dd>
+This is called "filter mode" in the Procmail documentation;
+some find this misleading, because everything Procmail does
+is "filtering". Here we are talking about a filter in the
+general Unix sense: think of this as if the mail message
+you are processing would be piped through whatever is on
+the action line before it actually gets piped on to Procmail
+(or at least the rest of your <code>.procmailrc</code>. 
+This is of course only done if the condition(s) are satisified).
+In other words, run a program which transforms its input
+into something else, and use the results.
+<dt>
+<a name="flag-i">
+<code>i</code>
+</a><dd>
+Suppress error checking when writing to a pipeline. 
+This is typically used to get rid of SIGPIPE errors 
+when the pipeline doesn't eat all of the input
+Procmail wants to feed it.
+(This is
+<a href="mini-faq.html#trunc">a FAQ.)</a>
+<dt>
+<a name="flag-r">
+<code>r</code>
+</a><dd>
+Raw mode: Don't do any "fixing" of the original message
+when writing it out (such as adding a final newline if the
+message didn't have one originally).
+<dt>
+<a name="flag-w">
+<code>w</code>
+</a><dd>
+Wait for the program in the action line to finish before
+continuing. Otherwise, Procmail will spawn off the program
+and leave it executing on its own.
+<dt>
+<a name="flag-W">
+<code>W</code>
+</a><dd>
+Like <code>w</code>, but additionally suppresses any
+"program failure" messages from the action pipeline.
+</dl>
+<h4>
+Case sensitivity
+</h4>
+Procmail normally matches without regard for case.
+<dl compact>
+<dt>
+<a name="flag-D">
+<code>D</code>
+</a><dd>
+Pay attention to character case when matching: "a" is
+treated as distinct from "A" and so on. Some of the special
+macros are always matched case-insensitively.
+</dl>
+<hr>
+<h2>
+<a name="conditions">
+Conditions
+</a></h2>
+If you want to execute an action unconditionally,
+just leave out the condition lines completely:
+<blockquote><pre>
+	# Save all remaining messages to DEFAULT
+	:0:
+	$DEFAULT
+</pre></blockquote>
+Something like this is frequently seen as the last recipe
+in a complicated 
+<a href="#braces">brace expression,</a>
+or the last recipe in an <code>rc</code> file,
+to take care of all messages which haven't been filed already
+by some earlier recipe.
+<p>
+The following informal exposition fails to fully convey
+the essentially recursive definition of what is a <i>condition</i>.
+Basically, the available modifiers can be stacked to 
+unlimited depths
+(although you would be hard pressed to find any practical
+need for more than one of each, at the most).
+<h3>
+Tests with regular expressions
+</H3>
+Details of procmail's regular expression syntax are presented
+<a href="#regex">below.</a>
+<dl>
+<dt>
+<code>* </code><var>regex</var>
+<dd>
+Test a part of the message 
+(usually just the headers,
+in the absence of a
+<a href="#matching-flags"><code>B</code> flag)</a>
+against <VAR>regex</VAR>.
+<dt>
+<a name="testvar">
+<code>* </code><var>variable</var><code> ?? </code><var>regex</var>
+</a><dd>
+Test the value of <var>variable</var> against
+<var>regex</var>. Various pseudovariables are listed 
+<a href="#variables">below.</a>
+</dl>
+<h3>
+<a name="size">
+Test size of message part
+</a></h3>
+<dl>
+<dt>
+<code>* &#62; </code><var>number</var>
+<dd>
+True if message is bigger than <var>number</var> bytes.
+<dt>
+<code>* &#60; </code><var>number</var>
+<dd>
+True if message is smaller than <var>number</var> bytes.
+</dl>
+This construct was broken in versions prior to 3.11pre4.
+<p>
+You can mix <code>??</code> with these to compare sizes of
+variables' values. (That's the number of bytes occupied by a
+variable's value, not arithmetic comparison of strings
+representing numbers. Use scoring for that.
+<p>
+Also note that this is not the number of <em>lines</em>
+in the message, it's a raw byte count. 
+You can use 
+<a href="#scoring">scoring</a>
+to count the number of lines, too.
+<p>
+Finally, note that <code>&#60;</code> and <code>&#62;</code>
+have a special meaning when used in
+<a href="#scoring">scoring recipes.)</a>
+<h3>
+Test exit code of external program
+</h3>
+<dl>
+<dt>
+<code>* ? </code><var>shell command (pipeline)</var>
+<dd>
+The program gets the current processed message as its
+standard input (but is of course free to ignore it);
+the condition is successful if the program returns a zero exit code.
+If the command is a pipeline with several commands in it,
+the exit code is whatever the last program in the pipeline
+returns (at least on systems worthy of the Unix name).
+<dd>
+Messages printed to standard error by the pipeline 
+are displayed in the log.
+</dl>
+<h3>
+Negation
+</h3>
+<dl>
+<dt>
+<code>* ! </code><var>condition</var>
+<dd>
+Succeeds if <var>condition</var> fails.
+</dl>
+<h3>
+<a name="dollar">
+Substitution in conditions
+</a></h3>
+<dl>
+<dt>
+<code>* $ </code><var>condition</var>
+<dd>
+Subject <var>condition</var> to
+<a href="#$variable">variable and backtick substitution</a>
+before actually evaluating the condition. 
+In particular, this will resolve any references to variables 
+(<code>$VAR</code>) which will otherwise be interpreted literally 
+(because $ is a regular-expression character which you normally 
+don't want Procmail to tamper with).
+Incidentally, quoted strings will also have their quotes stripped and
+<a href="#backticks">backticks</a> will be evaluated, too. 
+(In other words, quotes have to be backslash-escaped and ordinarily 
+backslash-escaped literal characters need to have 
+their backslashes doubled.)
+<dd>
+You can stack multiple <code>$</code> flags to force multiple
+substitution passes.
+</dl>
+<h3>
+<a name="scoring">
+Scoring
+</a></h3>
+<dl>
+<dt>
+<code>* <var>x</var>^<var>y</var> </code><var>condition</var>
+<dd>
+Scoring: If the condition is true, add a number to the total score.
+<var>x</var> is the number to add on the first match; <var>y</var>
+influences by how much the score should be adjusted for subsequent
+matches. When <var>y</var> is zero, only add <var>x</var> the first
+time the condition matches. An empty condition always matches. The
+final score is in the 
+<a href="#score">$?</a>
+pseudovariable and the action is taken if the final score is positive.
+<dd>
+There are lots of variations which depend on the values of the
+parameters and the nature of the condition.
+See the <i>procmailsc</i><b>(5)</b> manual page for details and
+examples.
+</dl>
+<hr>
+<h2>
+<a name="actions">
+Action line
+</a></h2>
+If you want to do more than one action, you can't just stack them one
+after the other, you need multiple recipes (possibly unconditional, and/or
+grouped in a pair of braces) and a colon line (and optionally conditions,
+of course) for each.
+<p>
+Also note that flags which affect the action line are not actually taking
+effect until the action is actually attempted; in particular, a
+<a href="#flag-c"><code>c</code> flag</a>
+doesn't generate a clone of the message until its conditions have all been
+met.
+<h3>
+Forward to other address(es)
+</h3>
+<dl>
+<dt>
+<code>! addr1@site.net addr2@else.com addr3 ...</code>
+<dd>
+Most MTA:s should allow you to forward to more than one address. 
+Try with or without commas between the addresses.
+(Sendmail eats both.)
+<dd>
+The <code>!</code> action is functionally equivalent to
+the pipeline
+<code>| $<a href="#sendmail">SENDMAIL</a> "$<a href="#sendmailflags">SENDMAILFLAGS</a>"</code>
+<dt>
+<code>! -t</code>
+<dd>
+This special case says to read the recipient data from
+the message's actual headers. Might not work with cheap
+Sendmail imitations.
+</dl>
+<h3>
+Feed to a shell command pipeline
+</h3>
+<dl>
+<dt>
+<code>| cmd1 foo | cmd2 -opt &#62;&#62;file</code>
+<dd>
+The pipeline is expected to save the message somewhere;
+you can play with the recipe's <a href="#flags">flags</a> to tell Procmail otherwise. 
+With &#62;&#62; syntax, Procmail can figure out a lock file. 
+(Always use <a href="#locking">locking</a> when writing to a file.)
+<dt>
+<code>VAR=| cmd1 | cmd2 ...</code>
+<dd>
+The output of the command pipeline can be assigned to a variable.
+This makes the recipe non-delivering.
+<dd>
+Notice that this syntax is only allowed on the action line,
+not in a plain assignment.
+(Use <a href="#backticks">backticks</a> with plain assigments to achieve the same effect.)
+</dl>
+<h3>
+Save to a folder
+</h3>
+<dl>
+<dt>
+<code>/path/to/filename</code>
+<dd>
+Save to a plain file; if there is no path given,
+<code>MAILDIR</code> is used as the directory.
+<dd>
+Always use <a href="#locking">locking</a> when writing to a
+plain file (except <code>/dev/null</code>).
+<dt>
+<code>directory/.</code>
+<dd>
+Save to an MH folder. Note the trailing <code>/.</code>
+<dd>
+You can list several MH folders at the same time. 
+Only one file will actually be written, the rest will be
+hard links.
+<dt>
+<code>directory/</code>
+<dd>
+Save to a directory. The trailing slash is not strictly necessary.
+<dd>
+You can list several directories at the same time. Only one
+file will actually be written, the rest will be hard links.
+</dl>
+<h3>
+<a name="braces">
+Compound recipe
+</a></h3>
+Instead of a single action line, an entire block of recipes
+can be used when the condition matches:
+<blockquote><pre>
+	{
+	    # ... more recipes
+	}
+</pre></blockquote>
+The stuff between the braces can be any valid Procmail
+construct (as in, anything mentioned in 
+<a href="#toplevel">"Top-level elements" above). </a>
+<p>
+Note well that an action that is a variable assignment always
+has to go inside a set of braces:
+<blockquote><pre>
+	{ VAR=value }
+</pre></blockquote>
+Just <code>VAR=value</code> without the braces would save to
+a folder named <code>VAR=value</code>. (Yes, that is a valid
+file name under Unix.)
+<p>
+An empty set of braces is a valid action if you want a recipe to not
+do anything (for example, in the "then" part of an "if-then-else"
+series of recipes, perhaps) but you have to remember to put in at
+least one whitespace character (tab, space, newline) between the
+braces.
+<hr>
+<h2>
+<a name="regex">
+Regular expressions
+</a></h2>
+<h3>
+Literal strings
+</h3>
+Procmail's parsing of backslashes at beginning of line is hairy.
+The examples here simply avoid getting into a situation where
+a regular expression starts with a backslash.
+<dl>
+<dt>
+<code>&#60;moo;foo/bar:baz&#38;qu-ux!sna@fu&#62;</code>
+<dd>
+The literal string 
+<code>&#60;moo;foo/bar:baz&#38;qu-ux!sna@fu&#62;</code>;
+note that none of the characters here need to be escaped in any fashion.
+(An exclamation mark needs to be disambiguated at the beginning of
+a line, though, to distinguish it from the negation operator.)
+<dt>
+<code>()\\ \[ \| \(</code>
+<dd>
+The literal string 
+<code>\ [ | ( </code>.
+The empty parentheses are often necessary before a leading backslash
+in order to avoid ambiguities.
+<dt>
+<code>()\[Procmail\]</code>
+<dd>
+The literal string 
+<code>[Procmail]</code>.
+This is just a corollary of the previous example.
+Literal round parentheses and vertical bars also need to be escaped.
+<dt>
+<code>(moo )</code>
+<dd>
+The literal string <code>moo</code> followed by a literal space.
+Trailing whitespace is usually ignored, so you have to do something
+like this to explicitly tell Procmail you want a literal space.
+<dt>
+Control characters
+<dd>
+Procmail doesn't know about <code>\t</code> and
+<code>\n</code> and other such Perlisms. You can safely embed
+any sort of bare control character other than newline in
+Procmail recipes, though.
+</dl>
+<h3>
+Anchoring
+</h3>
+Without anchoring, Procmail doesn't look at the context of
+the match. For instance, <code>[abcd]*</code> matches the
+string "zzzz" (because "zzzz" does indeed contain "zero or
+more" of, well, anything), but <code>^[abcd]*$</code> doesn't.
+With the anchors, you get to say the matching line mustn't
+contain anything else besides zero or more of "a", "b", "c",
+and/or "d".
+<dl compact>
+<dt>
+<code>^</code>
+<dd>
+Beginning of line.
+<dt>
+<code>$</code>
+<dd>
+End of line.
+<dt>
+<code>^^</code>
+<dd>
+Beginning or end of string (i.e., of the search space).
+To say the full header of a message mustn't contain anything
+except a <code>From:</code> header line, for example, you'd say
+<code>^^From:.*^^</code>.
+</dl>
+<h3>
+Alternation
+</h3>
+<dl>
+<dt>
+<code>bar|moo</code>
+<dd>
+Either "bar" or "moo".
+Obviously you could have more complicated regular expressions
+on either side of the alternation bar.
+<dt>
+<code>[abcd]</code>
+<dd>
+Any of the characters inside the brackets.
+This is called a <DFN>character class</DFN>.
+<dt>
+<code>[]()[]</code>
+<dd>
+Tricky example: A character class naming any one of the
+characters <code>] ( ) [</code>. Note that you don't need
+backslash escapes inside a character class.
+<dt>
+<code>[^abcd]</code>
+<dd>
+Complement a class: This matches any one character except 
+(newline or) a, b, c, or d
+<dt>
+<code>[a-z]</code>
+<dd>
+Character range: this matches any one character in the class 
+consisting of all the characters between a and z, inclusive. 
+<dd>
+Recall that Procmail is normally not paying attention to 
+character case, so this matches A through Z, too 
+(unless you use the
+<a href="#flag-D">D flag</a>
+to prevent that).
+<dt>
+<code>[^][^()-]</code>
+<dd>
+Trick example: character class which matches any one character except
+close square bracket (ASCII code 93),
+open square bracket (ASCII code 91),
+caret (^), round parentheses, 
+or minus (-).
+<dd>
+If you want to include a literal minus in a character class,
+it has to be the first character in that class 
+(after any <code>^</code> class negation operator)
+or the last character in that class.
+<dd>
+If you want to include a literal closing bracket in a
+character class, it has to be the first character in that class
+(after any <code>^</code> class negation operator).
+<dt>
+<code>[class]</code>
+<dd>
+Trick example: This is identical to the class
+<code>[acls]</code>, i.e. it matches any one
+of the characters inside the brackets, but only
+once (regardless of how many times you put it
+in the brackets).
+<dd>
+This is often hard for newbies.
+</dl>
+<h3>
+Wildcards
+</h3>
+<dl compact>
+<dt>
+<code>.</code>
+<dd>
+Any single character, except newline.
+</dl>
+<h3>
+Repetition
+</h3>
+Notably absent is the <code>{m,n}</code> construct found in
+many modern extended regular expression implementations.
+<dl compact>
+<dt>
+<code>o*</code>
+<dd>
+Zero or more o:s (i.e., "" or "o" or "oo" or "ooo" or "oooo" or ...)
+<dt>
+<code>o+</code>
+<dd>
+One or more o:s (i.e., "o" or "oo" or "ooo" or "oooo" or...)
+<dt>
+<code>o?</code>
+<dd>
+Zero or one o:s (i.e., "" or "o")
+<dt>
+<code>[abcd]*</code>
+<dd>
+Any string with zero or more a:s, b:s, c:s, and/or d:s
+(i.e. "", "ab", "baaa", "caddadac",...)
+<dt>
+<code>(bar|moo)*</code>
+<dd>
+Zero or more of "bar" or "moo" 
+(i.e. "", "moo", "bar", "moomoo", "moobar", "barmoo", 
+"moomoomoobar",...)
+<dt>
+<code>(bar|moo)+</code>
+<dd>
+One or more of "bar" or "moo" 
+(i.e. "moo", "bar", "moomoo", "moobar", "barmoo", "moomoomoobar",...)
+</dl>
+<h3>
+Special Procmail constructs
+</h3>
+<dl compact>
+<dt>
+<code>\&#60;</code>
+<dd>
+A shorthand for the character class <code>[^a-zA-Z0-9&#95;]</code>
+except it can also match newlines.
+<dd>
+This is an incompatible imitation of the "word end boundary" operator
+found in some extended regular expression implementations.
+For example, note that \&#60; and \&#62; are actually identical.
+<dt>
+<code>\&#62;</code>
+<dd>
+A shorthand for the character class <code>[^a-zA-Z0-9&#95;]</code>
+except it can also match newlines.
+<dd>
+This is an incompatible imitation of the "word end boundary" operator
+found in some extended regular expression implementations.
+For example, note that \&#60; and \&#62; are actually identical.
+<a name="grab">
+</a><dt>
+<code>\/</code>
+<dd>
+Start grabbing stuff into 
+<a href="#match">MATCH.</a>
+This is a substitute for real backreferences as found in many 
+extended regular expression implementations. Procmail allows
+for exactly one backref that remembers everything between
+<code>\/</code> and the end of the match;
+don't try to put more than one of these in a recipe.
+<dd>
+The <code>\/</code> operator changes Procmail's matching behavior
+after <code>\/</code> from stingy to greedy. 
+<a href="mini-faq.html#matching">See the FAQ for details.</a>
+</dl>
+<h3>
+Macros
+</h3>
+Procmail has some handy built-in shorthands which expand into
+complicated regular expressions. (These are not true macros,
+they expand only when used as part of a regular expression.)
+<dl compact>
+<dt>
+<code>^TO</code>
+<dd>
+This covers most headers which can carry your address in them, 
+such as To:, Apparently-To:, Cc:, Resent-To:, etc.
+You should perhaps use <code>^TO&#95;</code> instead.
+<dd>
+Note that there is no corresponding <code>^FROM</code> macro.
+<dt>
+<code>^TO&#95;</code>
+<dd>
+This is a better bounded version of <code>^TO</code>
+which unfortunately doesn't exist in older versions of
+Procmail (it was introduced in version 3.11pre4). Unless
+backwards compatibility is an issue, you should probably
+prefer <code>^TO&#95;</code> over <code>^TO</code>.
+<dd>
+Note that there is no corresponding <code>^FROM&#95;</code> macro.
+<dt>
+<code>^FROM&#95;MAILER</code>
+<dd>
+This should cover most messages from mailer programs (bounces etc.).
+<dt>
+<code>^FROM&#95;DAEMON</code>
+<dd>
+This is an expanded version of <code>^FROM&#95;MAILER</code>
+which covers a broader range of machine-generated messages,
+notably including most mailing lists and other (benign) bulk
+e-mail.
+</dl>
+<hr>
+<h2>
+<a name="variables">
+Variables
+</a></h2>
+<p>
+Curiously, even those special pseudovariables which are primarily useful
+for their associated side effects (<code>LOG</code>, <code>SHIFT</code>,
+etc) can be referenced, so you can see what the last value you assigned
+to them was. This is only marginally useful for most of us, but comes as
+a pleasant surprise in situations where this is actually useful.
+<p>
+<a href="#arguments"><code>$#</code>,</a>
+<a href="#pid"><code>$$</code>,</a>
+<a href="#shellastfolder"><code>$-</code>,</a>
+<a href="#arguments"><code>$1</code> etc.,</a>
+<a href="#result"><code>$=</code>,</a>
+<a href="#shellexitcode"><code>$?</code>,</a>
+<a href="#arguments"><code>$@</code>,</a>
+<a href="#rcfile"><code>$&#95;</code>,</a>
+<a href="#b"><code>B</code>,</a>
+<a href="#comsat"><code>COMSAT</code>,</a>
+<a href="#default"><code>DEFAULT</code>,</a>
+<a href="#delivered"><code>DELIVERED</code>,</a>
+<a href="#dropprivs"><code>DROPPRIVS</code>,</a>
+<a href="#exitcode"><code>EXITCODE</code>,</a>
+<a href="#h"><code>H</code>,</a>
+<a href="#host"><code>HOST</code>,</a>
+<a href="#includerc"><code>INCLUDERC</code>,</a>
+<a href="#lastfolder"><code>LASTFOLDER</code>,</a>
+<a href="#linebuf"><code>LINEBUF</code>,</a>
+<a href="#lockext"><code>LOCKEXT</code>,</a>
+<a href="#lockfile"><code>LOCKFILE</code>,</a>
+<a href="#locksleep"><code>LOCKSLEEP</code>,</a>
+<a href="#locktimeout"><code>LOCKTIMEOUT</code>,</a>
+<a href="#log"><code>LOG</code>,</a>
+<a href="#logabstract"><code>LOGABSTRACT</code>,</a>
+<a href="#logfile"><code>LOGFILE</code>,</a>
+<a href="#maildir"><code>MAILDIR</code>,</a>
+<a href="#match"><code>MATCH</code>,</a>
+<a href="#msgprefix"><code>MSGPREFIX</code>,</a>
+<a href="#noresretry"><code>NORESRETRY</code>,</a>
+<a href="#orgmail"><code>ORGMAIL</code>,</a>
+<a href="#sendmail"><code>SENDMAIL</code>,</a>
+<a href="#sendmailflags"><code>SENDMAILFLAGS</code>,</a>
+<a href="#shell"><code>SHELL</code>,</a>
+<a href="#shellflags"><code>SHELLFLAGS</code>,</a>
+<a href="#shellmetas"><code>SHELLMETAS</code>,</a>
+<a href="#shift"><code>SHIFT</code>,</a>
+<a href="#suspend"><code>SUSPEND</code>,</a>
+<a href="#timeout"><code>TIMEOUT</code>,</a>
+<a href="#trap"><code>TRAP</code>,</a>
+<a href="#umask"><code>UMASK</code>,</a>
+<a href="#verbose"><code>VERBOSE</code></a>
+<h3>
+Mailboxes
+</h3>
+<dl compact>
+<dt>
+<a name="maildir">
+<code>MAILDIR</code>
+</a><dd>
+The directory in which Procmail will be executing
+and where output files will be written unless you specify 
+an explicit pathname.
+<dd>
+In other words, assigning a directory to <code>MAILDIR</code> 
+causes Procmail to switch its current directory.
+(Assigning a nonexistent directory will produce an error message
+in the log and Procmail will stay wherever it already was.
+The default <code>MAILDIR</code> is the value of <code>$HOME</code>.)
+<dt>
+<a name="msgprefix">
+<code>MSGPREFIX</code>
+</a><dd>
+Base file name used when writing a message to a directory
+(in a new file, one per message). The default is
+<code>msg.</code> (including the trailing dot; you get
+files called stuff like <code>msg.HND</code> where
+<code>HND</code> is a more or less random string tacked on to
+make a unique file name).
+<dd>
+MH files have their own naming convention.
+<dt>
+<a name="default">
+<code>DEFAULT</code>
+</a><dd>
+The default mailbox where mail will be written
+unless some recipe directs Procmail to save it
+elsewhere.
+(You shouldn't normally need to fiddle with this.)
+<dt>
+<a name="orgmail">
+<code>ORGMAIL</code>
+</a><dd>
+If 
+<a href="#default"><code>DEFAULT</code></a>
+cannot be written to, Procmail tries the file name this variable points
+to as a last resort.
+(You shouldn't fiddle with this unless you think
+you know what you are doing.)
+</dl>
+<h3>
+Programs to use
+</h3>
+Procmail has reasonable defaults written in at compile time.
+Mostly these shouldn't need to be changed.
+<dl compact>
+<dt>
+<a name="shell">
+<code>SHELL</code>
+</a><dd>
+Which shell to use when spawning external programs. This
+should <strong>always</strong> explicitly be set to point to a
+<code>sh</code>-compatible shell. If your login shell is a
+<code>csh</code> derivative, you need to set this
+to <code>/bin/sh</code>. 
+<a href="#shellmetas">(<code>SHELLMETAS</code></a>
+determines when exactly a shell is thought to be needed.)
+<dt>
+<a name="shellflags">
+<code>SHELLFLAGS</code>
+</a><dd>
+Options used when starting a shell.
+<dt>
+<a name="sendmail">
+<code>SENDMAIL</code>
+</a><dd>
+Where to find Sendmail on this system.
+(Usually not to be fiddled with.)
+<dt>
+<a name="sendmailflags">
+<code>SENDMAILFLAGS</code>
+</a><dd>
+Options used when starting a sendmail.
+</dl>
+<h3>
+System interaction
+</h3>
+<dl>
+<dt>
+<a name="umask">
+<code>UMASK</code>
+</a><dd>
+What mode to give created files. <code>man umask</code> for details.
+<dt>
+<a name="shellmetas">
+<code>SHELLMETAS</code>
+</a><dd>
+If a shell pipeline contains any character in <code>SHELLMETAS</code>,
+a shell is used to run the pipeline, on the theory that the command
+is too complicated for Procmail to parse. If the command line doesn't
+really need to get parsed by the shell, temporarily set
+<code>SHELLMETAS</code> to something else (but do save the old value)
+before the recipe.
+<dt>
+<a name="trap">
+<code>TRAP</code>
+</a><dd>
+A shell snippet to execute after delivery.
+<dt>
+<a name="exitcode">
+<code>EXITCODE</code>
+</a><dd>
+What return code to pass back to the calling program.
+Sendmail, for example, pays a lot of attention to the exit code.
+This can be used to control, e.g., what kind of bounce message
+exactly Sendmail generates when a message can't be delivered.
+<dd>
+The exit code of a program called up by Procmail is in
+<a href="#shellexitcode">$?</a>
+</dl>
+<h3>
+Logging
+</h3>
+<dl compact>
+<dt>
+<a name="logfile">
+<code>LOGFILE</code>
+</a><dd>
+Where Procmail should write its log. If this is unset, 
+logging messages go to standard error (and are neither saved
+anywhere nor seen by anyone, except when you run Procmail
+interactively).
+<dt>
+<a name="log">
+<code>LOG</code>
+</a><dd>
+Assigning something to this variable writes out the
+assigned value to the <code>LOGFILE</code>.
+<dd>
+Often, you want to include a final newline in the
+string you log:
+<blockquote><pre>
+	LOG="Moo!
+"
+</pre></blockquote>
+(Yes, that's <code>LOG=</code>,
+open quote, text, newline, closing quote.)
+<dt>
+<a name="verbose">
+<code>VERBOSE</code>
+</a><dd>
+Set to <code>yes</code> to get very detailed logging.
+<dt>
+<a name="logabstract">
+<code>LOGABSTRACT</code>
+</a><dd>
+Which events exactly get logged. Set to <code>all</code>
+to have every delivery logged.
+This is
+<a href="mini-faq.html#gotchas">slightly broken in 3.11pre7.</a>
+<dt>
+<a name="comsat">
+<code>COMSAT</code>
+</a><dd>
+Controls what kind of <code>comsat</code>(8) notices
+Procmail generates, if any.
+</dl>
+<h3>
+Procmail's state
+</h3>
+<dl>
+<dt>
+<a name="host">
+<code>HOST</code>
+</a><dd>
+Which host we're on. Set to a bogus value to terminate
+the present toplevel <code>.rc</code> file immediately
+(meaning if you are in a file
+<a href="#includerc">INCLUDERC=ed</a>
+from <code>.procmailrc</code>, both the current file
+and <code>.procmailrc</code> are skipped. If there are
+other file name arguments passed to Procmail on the
+command line, those will still be executed).
+<dt>
+<a name="delivered">
+<code>DELIVERED</code>
+</a><dd>
+If the current message was already delivered, this is set to 
+<code>yes</code>. 
+You can set it to <code>yes</code> to make Procmail pretend it was.
+<dt>
+<a name="lastfolder">
+<code>LASTFOLDER</code>
+</a><dd>
+Where the current message was last saved (folder or command).
+<dt>
+<a name="match">
+<code>MATCH</code>
+</a><dd>
+Whatever the latest 
+<a href="#grab"><code>\/</code> operator</a>
+grabbed.
+<dt>
+<a name="result">
+<code>$=</code>
+</a><dd>
+Whatever the result of the latest 
+<a href="#scoring">scoring recipe</a>
+was.
+<dt>
+<a name="arguments">
+<code>$1</code>,
+<code>$2</code>, ...; <code>$@</code>; <code>$#</code>
+</a><dd>
+Procmail's command-line arguments, like in the shell:
+<code>$1</code> is the first command-line argument, etc.;
+<code>$@</code> contains all arguments, and
+<code>$#</code> contains the number of arguments.
+<dd>
+See also the 
+<a href="#shift"><code>SHIFT</code></a>
+pseudovariable.
+<dt>
+<a name="pid">
+<code>$$</code>
+</a><dd>
+The current Procmail's PID.
+This is the same as in the shell.
+<dt>
+<a name="shellexitcode">
+<code>$?</code>
+</a><dd>
+The exit code of the previous shell command.
+This is the same as in the shell.
+<dt>
+<a name="rcfile">
+<code>$&#95;</code>
+</a><dd>
+The name of the current <code>rcfile</code>.
+<dt>
+<a name="shellastfolder">
+<code>$-</code>
+</a><dd>
+An alias for
+<a href="#lastfolder"><code>LASTFOLDER</code></a>
+</dl>
+Note that <code>$=</code> and <code>$@</code> can't be used directly; 
+you have to assign the value to another variable 
+before it can be used for anything useful.
+<h3>
+Message contents
+</h3>
+<dl compact>
+<dt>
+<a name="h">
+<code>H</code>
+</a><dd>
+The headers of the processed message.
+<dt>
+<a name="b">
+<code>B</code>
+</a><dd>
+The body of the processed message.
+</dl>
+These are primarily useful for constrained conditions such as
+<a href="#testvar"><code>H ?? </code><var>regex</var></a>
+or
+<a href="#size"><code>B &#62; </code><var>number</var></a>
+when the recipe has a 
+<a href="#matching-flags"><code>H</code> or <code>B</code> flag</a>
+that restricts conditions to the other part of the message. Use
+<code>HB</code> or <code>BH</code> to examine both headers
+and body.
+<h3>
+Locking
+</h3>
+<dl compact>
+<dt>
+<a name="lockfile">
+<code>LOCKFILE</code>
+</a><dd>
+Assigning to this variable creates a regional lock file which endures
+until <code>LOCKFILE</code> is assigned to again (just 
+<code>LOCKFILE</code> assigns the empty string and removes any lock).
+<dt>
+<a name="lockext">
+<code>LOCKEXT</code>
+</a><dd>
+The file name extension used when creating a lock file. 
+All the programs which have to share a lock obviously need to 
+agree on what extension to use. The default, <code>.lock</code>,
+is usually fine and shouldn't be changed unless you have special
+needs.
+<dt>
+<a name="locksleep">
+<code>LOCKSLEEP</code>
+</a><dd>
+When Procmail wants to lock a file which is already locked, 
+it goes to sleep and wakes up and tries again after
+<code>LOCKSLEEP</code> seconds.
+<dt>
+<a name="locktimeout">
+<code>LOCKTIMEOUT</code>
+</a><dd>
+How long Procmail must wait in vain before it is allowed to decide
+the existing lock on a file must have been stale, and proceed to
+break the lock.
+</dl>
+<h3>
+Error handling
+</h3>
+<dl compact>
+<dt>
+<a name="timeout">
+<code>TIMEOUT</code>
+</a><dd>
+How long to wait for a child before giving up on it.
+<dt>
+<a name="noresretry">
+<code>NORESRETRY</code>
+</a><dd>
+How many times to wait for a serious resource shortage condition
+to, uh, just go away. Default is try four times before bouncing
+a message as undeliverable.
+<dt>
+<a name="suspend">
+<code>SUSPEND</code>
+</a><dd>
+How long to wait between <code>NORESRETRY</code> retries.
+Default is 16 seconds.
+</dl>
+<h3>
+Miscellaneous
+</h3>
+<dl compact>
+<dt>
+<a name="linebuf">
+<code>LINEBUF</code>
+</a><dd>
+How long recipe lines Procmail is prepared to cope with.
+If you need to process really big regular expressions or
+grab lots of data into <code>MATCH</code>, you'll need to
+increase this.
+<dd>
+Note that exceeding <code>LINEBUF</code> can make Procmail crash.
+(The manual blandly states that "behavior is undefined"
+but we all know what that means in practice!)
+<dt>
+<a name="shift">
+<code>SHIFT</code>
+</a><dd>
+You can shift down Procmail's command line arguments
+(much like the shell builtin <code>shift</code>)
+by assigning a positive number to this pseudovariable.
+<dt>
+<a name="includerc">
+<code>INCLUDERC</code>
+</a><dd>
+Assigning a file name to this variable will cause
+Procmail to load that file and start processing the recipes
+in it, like a subroutine. When the included file is
+processed, Procmail continues in the present file where it
+left off.
+<dt>
+<a name="dropprivs">
+<code>DROPPRIVS</code>
+</a><dd>
+When Procmail is executing as setuid or setgid, setting
+this to <code>yes</code> will make it drop all its special
+privileges.
+</dl>
+<hr>
+<h2>
+Random notes
+</h2>
+The plural of "recipe" is "recipes". 
+Both forms have only one occurrence of the letter <i>i</i>.
+<p align=center>
+<A HREF="http://validator.w3.org/"><IMG SRC="http://validator.w3.org/images/vh40.gif" ALT="Valid HTML 4.0!" HEIGHT=31 WIDTH=88></A>
+<p>
+<small>
+$Id: quickref.html,v 1.2 2009/01/07 12:04:03 gsutter Exp $
+</small>
+
+</body>
+</html>
