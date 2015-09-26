@@ -172,10 +172,7 @@ for char in ['{', '!', '|', '*']:
 
 action_forward = Literal('!').suppress() + ~NL + OneOrMore(~NL + Word(unicodePrintables))
 action_shell = Optional(variable.setResultsName("variable") + ~NL + Literal('=')) \
-    + ~NL + Literal('|') + ~NL + Word(unicodePrintablesSpaces).setResultsName("cmd") \
-    + Optional(
-        ~NL + Literal('>>') + ~NL + Word(unicodePrintablesSpaces)
-    ).setResultsName('lockfile')
+    + ~NL + Literal('|') + ~NL + Word(unicodePrintablesSpaces).setResultsName("cmd")
 action_save = Word(action_first_char, unicodePrintablesSpaces)
 action_list = Literal('{').suppress() + statements + Literal('}').suppress()
 action = (

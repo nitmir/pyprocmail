@@ -579,7 +579,7 @@ class ActionShell(Action, Commentable):
 
     type = "shell"
 
-    def __init__(self, cmd, variable=None, lockfile=None, comment=None):
+    def __init__(self, cmd, variable=None, comment=None):
         """The pipeline is expected to save the message somewhere;
         you can play with the recipe's flags to tell Procmail otherwise.
         (Always use locking when writing to a file.)
@@ -589,22 +589,17 @@ class ActionShell(Action, Commentable):
         """
         self.cmd = cmd
         self.variable = variable
-        self.lockfile = lockfile
         self.comment = comment
 
     def is_shell(self):
         return True
 
     def render(self, ident=0):
-        if self.lockfile:
-            lockfile = " >> %s" % self.lockfile
-        else:
-            lockfile = ""
         if self.variable:
             variable = "%s=" % self.variable
         else:
             variable = ""
-        return u"%s%s|%s%s%s" % ("    " * ident, variable, self.cmd, lockfile, self._get_comment())
+        return u"%s%s|%s%s" % ("    " * ident, variable, self.cmd, self._get_comment())
 
 
 @register_type
@@ -831,7 +826,6 @@ def _parse_recipe(p):
         action = ActionShell(
             p.action.shell.cmd,
             p.action.shell.variable,
-            p.action.shell.lockfile[1] if len(p.action.shell.lockfile) > 1 else None,
             comment=comment
         )
     elif p.action.path:
