@@ -11,7 +11,9 @@
 # (c) 2015 Valentin Samir
 from pyparsing import *
 unicodePrintables = u''.join(unichr(c) for c in xrange(65536) if not unichr(c).isspace())
-unicodeSpaces = u''.join(unichr(c) for c in xrange(65536) if unichr(c).isspace() and unichr(c) not in ["\n", "\r"])
+unicodeSpaces = u''.join(
+    unichr(c) for c in xrange(65536) if unichr(c).isspace() and unichr(c) not in ["\n", "\r"]
+)
 unicodePrintablesSpaces = unicodePrintables + unicodeSpaces
 
 NL = Suppress(LineEnd())
@@ -54,7 +56,10 @@ comment_raw = (
 comment = comment_raw.setResultsName('comment')
 
 
-end_of_line = ((Optional(~NL + CR) + LineEnd().suppress()) | comment_raw.setResultsName('comment_line'))
+end_of_line = (
+    (Optional(~NL + CR) + LineEnd().suppress())
+    | comment_raw.setResultsName('comment_line')
+)
 start_line = Optional((ZeroOrMore(Word(' \t'))).suppress())
 
 assignement = variable + Optional(
@@ -113,8 +118,10 @@ condition << (
     (Literal('!').suppress() + ~NL + Group(condition).setResultsName("negate")) |
     (Literal('$').suppress() + ~NL + Group(condition).setResultsName("substitute")) |
     (
-        Word(nums).setResultsName("x") + ~NL + Literal('^').suppress() + ~NL + Word(nums).setResultsName("y") +
-        ~NL + Group(condition).setResultsName("condition")
+        Word(nums).setResultsName("x")
+        + ~NL + Literal('^').suppress()
+        + ~NL + Word(nums).setResultsName("y")
+        + ~NL + Group(condition).setResultsName("condition")
     ).setResultsName("score") |
     condition_regex.setResultsName("regex")
     )
