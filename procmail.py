@@ -729,7 +729,10 @@ class ProcmailRc(list):
         return u"\n".join(s.render() for s in self)
 
     def write(self, file, charset="utf-8"):
-        data = self.render().encode(charset)
+        data = self.render()
+        # check we can still parse the redered data
+        parseString(data)
+        data = data.encode(charset)
         with open(file + '.new', 'w') as f:
             f.write(data)
         os.rename(file + '.new', file)
