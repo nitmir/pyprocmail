@@ -75,8 +75,8 @@ class Comment(Statement):
         return True
 
     def gen_title(self):
-        if len(self.str) > 10:
-            return u"# %s…" % self.str[:10]
+        if len(self.str) > 24:
+            return u"# %s…" % self.str[:24]
         else:
             return u"# %s" % self.str
 
@@ -113,10 +113,10 @@ class Assignment(Statement, Commentable, MetaCommentable):
         susp = u""
         if len(self.variables) > 1:
             susp = u"…"
-        if len(self.variables[0][0]) + len(self.variables[0][1]) > 10:
+        if len(self.variables[0][0]) > 20:
             susp = u"…"
-        title = '%s="%s"' % (self.variables[0][0], self.variables[0][1])
-        return "%s%s" % (title[:11], susp)
+        title = 'Set %s' % (self.variables[0][0],)
+        return "%s%s" % (title[:24], susp)
 
 
 class Header(Commentable):
