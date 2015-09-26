@@ -125,10 +125,11 @@ class Assignment(Statement, Commentable, MetaCommentable):
 class Header(Commentable):
     """First line of a procmail recipe"""
     def __init__(self, number='0', flag="", lockfile=None, comment=None):
-        if flag == "":
-            self._flag = u"Hhb"
-        else:
-            self._flag = flag
+        if not 'H' in flag and not 'B' in flag:
+            flag += 'H'
+        if not 'h' in flag and not 'b' in flag:
+            flag += 'hb'
+        self._flag = flag
         self.number = number
         self.lockfile = lockfile
         self.comment = comment
