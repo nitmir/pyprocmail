@@ -658,6 +658,10 @@ class Recipe(Statement, MetaCommentable):
     A list of conditions (may be empty) which are instance of `Condition` (use subclasses)
     An action instance of `Action` (use subclasses)
     """
+
+    _recipe_id = None
+
+
     def __init__(
         self, header, action, conditions=None, meta_title=None,
         meta_comment=None, comment_condition=None, comment_action=None
@@ -708,7 +712,7 @@ class Recipe(Statement, MetaCommentable):
         return u"".join(s)
 
     def gen_title(self):
-        return "Recipe %s" % self.id
+        return "Recipe %s" % self._recipe_id
 
 
 class ProcmailRc(list):
@@ -841,13 +845,17 @@ def _parse_recipe(p):
     )
 
 
-def set_id(stmts, prefix=""):
+def set_id(stmts, prefix="", prefix2=""):
     i = 0
+    j = 1
     for stmt in stmts:
         stmt.id = "%s%s" % (prefix, i)
         stmt.parent = stmts
+        if stmt.is_recipe():
+            stmt._recipe_id = "%s%s" % (prefix2, j)
+            j += 1
         if stmt.is_recipe() and stmt.action.is_nested():
-            set_id(stmt, stmt.id + ".")
+            set_id(stmt, stmt.id + ".", stmt._recipe_id + ".")
         i += 1
     if stmts:
         stmts[0].is_first = True
