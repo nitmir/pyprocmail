@@ -747,8 +747,8 @@ def _parse_assignements(p):
         comment = Comment(p.assignements.comment_line[0])
     else:
         comment = None
-    meta_title = p.meta_title if p.meta_title else None
-    meta_comment = p.meta_comment if p.meta_comment else None
+    meta_title = p.meta_title[0] if p.meta_title else None
+    meta_comment = p.meta_comment[0] if p.meta_comment else None
     variables = []
     for assignment in p.assignements:
         if isinstance(assignment, parser.ParseResults):
@@ -840,8 +840,8 @@ def _parse_recipe(p):
         raise RuntimeError("Unknown action %r" % p.action)
     return Recipe(
         header, action, conditions,
-        meta_title=p.meta_title if p.meta_title else None,
-        meta_comment=p.meta_comment if p.meta_comment else None,
+        meta_title=p.meta_title[0] if p.meta_title else None,
+        meta_comment=p.meta_comment[0] if p.meta_comment else None,
         comment_condition=Comment(p.comment_condition[0]) if p.comment_condition else None,
         comment_action=Comment(p.comment_action[0]) if p.comment_action else None
     )

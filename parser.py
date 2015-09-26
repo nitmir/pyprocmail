@@ -13,26 +13,29 @@ from pyparsing import *
 unicodePrintables = u''.join(unichr(c) for c in xrange(65536) if not unichr(c).isspace())
 unicodePrintablesSpaces = unicodePrintables + u' \t\xa0'
 NL = Suppress(LineEnd())
+CR = Suppress(Literal("\r"))
 
 variable_charset = alphanums + '_'
 variable = Word(variable_charset)
 
 # Add some meta comment to the grammar to convey more informations
-title_comment_flag = Literal('title') + Literal(':')
-comment_comment_flag = Literal('comment') + Literal(':')
+title_comment_flag = Literal('title') + ~NL + Literal(':')
+comment_comment_flag = Literal('comment') + ~NL + Literal(':')
 
 meta_comment_flag = title_comment_flag | comment_comment_flag
 
 title_comment = (
     Literal('#').suppress()
-    + title_comment_flag.suppress()
-    + Optional(Word(unicodePrintablesSpaces)).setResultsName('meta_title')
+    + ~NL + title_comment_flag.suppress()
+    + Optional(~NL + Word(unicodePrintablesSpaces)).setResultsName('meta_title')
+    + Optional(~NL + CR)
     + LineEnd().suppress()
 )
 comment_comment = (
     Literal('#').suppress()
-    + comment_comment_flag.suppress()
-    + Optional(Word(unicodePrintablesSpaces)).setResultsName('meta_comment')
+    + ~NL + comment_comment_flag.suppress()
+    + Optional(~NL + Word(unicodePrintablesSpaces)).setResultsName('meta_comment')
+    + Optional(~NL + CR)
     + LineEnd().suppress()
 )
 
@@ -43,12 +46,13 @@ comment_raw = (
     Literal('#').suppress()
     + ~meta_comment_flag
     + Optional(~NL + Word(unicodePrintablesSpaces))
+    + Optional(~NL + CR)
     + LineEnd().suppress()
 )
 comment = comment_raw.setResultsName('comment')
 
 
-end_of_line = (LineEnd().suppress() | comment_raw.setResultsName('comment_line'))
+end_of_line = ((Optional(~NL + CR) + LineEnd().suppress()) | comment_raw.setResultsName('comment_line'))
 start_line = Optional((ZeroOrMore(Word(' \t'))).suppress())
 
 assignement = variable + Optional(
@@ -75,15 +79,15 @@ substitution = substitution.setResultsName('substitution')
 
 recipe = Forward()
 
-statement = ZeroOrMore(LineEnd()).suppress() \
+statement = ZeroOrMore(Optional(~NL + CR) + LineEnd()).suppress() \
     + (comment | assignements | substitution | recipe) \
-    + ZeroOrMore(LineEnd()).suppress()
+    + ZeroOrMore(Optional(~NL + CR) + LineEnd()).suppress()
 statements = ZeroOrMore(Group(statement))
 
 flag = Literal('A') | Literal('a') | Literal('B') | Literal('b') | Literal('c') \
     | Literal('D') | Literal('E') | Literal('e') | Literal('f') | Literal('H') \
     | Literal('h') | Literal('i') | Literal('r') | Literal('W') | Literal('w')
-flags = ZeroOrMore(flag).setResultsName('flags')
+flags = Optional(flag + ZeroOrMore(~NL + flag)).setResultsName('flags')
 lockfile = (Literal(':') + Optional(~NL + Word(printables))).setResultsName('lockfile')
 colon_line = (
     start_line + ~NL + Literal(':').suppress() + ~NL + Word(nums).setResultsName('number')
@@ -94,21 +98,21 @@ colon_line = (
 condition = Forward()
 condition_regex = Word(unicodePrintablesSpaces)
 condition_size = (Literal('>') | Literal('<')).setResultsName("sign") \
-    + Word(nums).setResultsName("size")
-condition_shell = Literal('?').suppress() + Word(unicodePrintablesSpaces)
+    + ~NL + Word(nums).setResultsName("size")
+condition_shell = Literal('?').suppress() + ~NL + Word(unicodePrintablesSpaces)
 condition << (
     (
         variable.setResultsName("variable")
-        + Literal('??')
-        + Group(condition).setResultsName("condition")
+        + ~NL + Literal('??')
+        + ~NL + Group(condition).setResultsName("condition")
     ).setResultsName("variable") |
     condition_size.setResultsName("size") |
     condition_shell.setResultsName("shell") |
-    (Literal('!').suppress() + Group(condition).setResultsName("negate")) |
-    (Literal('$').suppress() + Group(condition).setResultsName("substitute")) |
+    (Literal('!').suppress() + ~NL + Group(condition).setResultsName("negate")) |
+    (Literal('$').suppress() + ~NL + Group(condition).setResultsName("substitute")) |
     (
-        Word(nums).setResultsName("x") + Literal('^').suppress() + Word(nums).setResultsName("y") +
-        Group(condition).setResultsName("condition")
+        Word(nums).setResultsName("x") + ~NL + Literal('^').suppress() + ~NL + Word(nums).setResultsName("y") +
+        ~NL + Group(condition).setResultsName("condition")
     ).setResultsName("score") |
     condition_regex.setResultsName("regex")
     )
