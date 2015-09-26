@@ -872,8 +872,8 @@ def _parse_statements(p):
     return stmt
 
 
-def parse(file):
-    p = parser.parse(file)
+def parse(file, charset="utf-8"):
+    p = parser.parse(file, charset)
     return ProcmailRc(_parse_statements(p))
 
 
