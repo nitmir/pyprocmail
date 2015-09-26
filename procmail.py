@@ -135,10 +135,18 @@ class Header(Commentable):
 
     @property
     def flag(self):
-        if self.H and self.h and self.b and len(self._flag) == 3:
-            return u""
-        else:
-            return self._flag
+        flag = self._flag
+        # hb is the default
+        # Lone h turns off b and vice versa; use hb to explicitly turn on both.
+        if self.h and self.b:
+            for letter in ['h', 'b']:
+                flag = flag.replace(letter, '')
+        # H is the default
+        # Lone B turns off H; use HB to examine both headers and body.
+        if self.H and not self.B:
+            for letter in ['H']:
+                flag = flag.replace(letter, '')
+        return flag
 
     def render(self, ident=0):
         if self.lockfile:
