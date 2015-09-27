@@ -32,8 +32,9 @@ variable = Word(alphas + '_', alphanums + '_')
 # Add some meta comment to the grammar to convey more informations
 title_comment_flag = Literal('title') + ~NL + Literal(':')
 comment_comment_flag = Literal('comment') + ~NL + Literal(':')
+comment_custom_flag = Literal('custom') + ~NL + Literal(':')
 
-meta_comment_flag = title_comment_flag | comment_comment_flag
+meta_comment_flag = title_comment_flag | comment_comment_flag | comment_custom_flag
 
 title_comment = (
     Literal('#').suppress()
@@ -49,8 +50,14 @@ comment_comment = (
     + Optional(~NL + CR)
     + LineEnd().suppress()
 )
-
-meta_comment = title_comment | comment_comment
+comment_custom = (
+    Literal('#').suppress()
+    + ~NL + comment_custom_flag.suppress()
+    + Optional(~NL + Word(unicodePrintablesSpaces)).setResultsName('meta_custom')
+    + Optional(~NL + CR)
+    + LineEnd().suppress()
+)
+meta_comment = title_comment | comment_comment | comment_custom
 
 # A comment : A '#' + optionally anything except \r and \n
 # ends with a \n

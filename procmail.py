@@ -16,6 +16,7 @@ import os
 class MetaCommentable(object):
     meta_title = None
     meta_comment = None
+    meta_custom = None
 
     def _get_meta(self, ident):
         s = []
@@ -23,6 +24,8 @@ class MetaCommentable(object):
             s.append(u"%s#title: %s\n" % ("    " * ident, self.meta_title))
         if self.meta_comment:
             s.append(u"%s#comment: %s\n" % ("    " * ident, self.meta_comment))
+        if self.meta_custom:
+            s.append(u"%s#custom: %s\n" % ("    " * ident, self.meta_custom))
         return "".join(s)
 
 
@@ -84,11 +87,12 @@ class Comment(Statement):
 
 class Assignment(Statement, Commentable, MetaCommentable):
     """Variable names are customarily upper case."""
-    def __init__(self, variables, comment=None, meta_title=None, meta_comment=None):
+    def __init__(self, variables, comment=None, meta_title=None, meta_comment=None, meta_custom=None):
         self.variables = variables  # list of (variable_name, variable_value)
         self.comment = comment
         self.meta_comment = meta_comment
         self.meta_title = meta_title
+        self.meta_custom = meta_custom
 
     def render(self, ident=0):
         variables = []
@@ -664,13 +668,15 @@ class Recipe(Statement, MetaCommentable):
 
     def __init__(
         self, header, action, conditions=None, meta_title=None,
-        meta_comment=None, comment_condition=None, comment_action=None
+        meta_comment=None, comment_condition=None, comment_action=None,
+        meta_custom=None
     ):
         self.header = header
         self.action = action
         self.conditions = [] if conditions is None else conditions
         self.meta_title = meta_title
         self.meta_comment = meta_comment
+        self.meta_custom = meta_custom
         self.comment_condition = comment_condition
         self.comment_action = comment_action
 
@@ -748,6 +754,7 @@ def _parse_assignements(p):
         comment = None
     meta_title = p.meta_title[0] if p.meta_title else None
     meta_comment = p.meta_comment[0] if p.meta_comment else None
+    meta_custom = p.meta_custom[0] if p.meta_custom else None
     variables = []
     for assignment in p.assignements:
         if isinstance(assignment, parser.ParseResults):
@@ -767,7 +774,8 @@ def _parse_assignements(p):
         variables,
         comment=comment,
         meta_title=meta_title,
-        meta_comment=meta_comment
+        meta_comment=meta_comment,
+        meta_custom=meta_custom,
     )
 
 
@@ -839,6 +847,7 @@ def _parse_recipe(p):
     return Recipe(
         header, action, conditions,
         meta_title=p.meta_title[0] if p.meta_title else None,
+        meta_custom=p.meta_custom[0] if p.meta_custom else None,
         meta_comment=p.meta_comment[0] if p.meta_comment else None,
         comment_condition=Comment(p.comment_condition[0]) if p.comment_condition else None,
         comment_action=Comment(p.comment_action[0]) if p.comment_action else None
