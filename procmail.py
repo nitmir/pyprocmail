@@ -13,6 +13,21 @@ import parser
 import os
 
 
+class BaseObject(object):
+
+    def is_statement(self):
+        return False
+
+    def is_action(self):
+        return False
+
+    def is_header(self):
+        return False
+
+    def is_condition(self):
+        return False
+
+
 class MetaCommentable(object):
     meta_title = None
     meta_comment = None
@@ -43,7 +58,7 @@ class Commentable(object):
             return u""
 
 
-class Statement(object):
+class Statement(BaseObject):
     """Base classe for procmail's statements"""
     id = None
 
@@ -87,12 +102,20 @@ class Comment(Statement):
 
 class Assignment(Statement, Commentable, MetaCommentable):
     """Variable names are customarily upper case."""
-    def __init__(self, variables, comment=None, meta_title=None, meta_comment=None, meta_custom=None):
+    def __init__(
+        self, variables, comment=None, meta_title=None,
+        meta_comment=None, meta_custom=None
+    ):
         self.variables = variables  # list of (variable_name, variable_value)
         self.comment = comment
         self.meta_comment = meta_comment
         self.meta_title = meta_title
         self.meta_custom = meta_custom
+
+    def __eq__(self, y):
+        if isinstance(y, Assignment):
+            return y.variables == self.variables
+        return False
 
     def render(self, ident=0):
         variables = []
@@ -126,7 +149,7 @@ class Assignment(Statement, Commentable, MetaCommentable):
         return "%s%s" % (title[:24], susp)
 
 
-class Header(Commentable):
+class Header(BaseObject, Commentable):
     """First line of a procmail recipe"""
     def __init__(self, number='0', flag="", lockfile=None, comment=None):
         if 'H' not in flag and 'B' not in flag:
@@ -137,6 +160,19 @@ class Header(Commentable):
         self.number = number
         self.lockfile = lockfile
         self.comment = comment
+
+    def __eq__(self, y):
+        if isinstance(y, Header):
+            if self.number == y.number and self.lockfile == y.lockfile:
+                flag1 = [f for f in self.flag]
+                flag2 = [f for f in y.flag]
+                flag1.sort()
+                flag2.sort()
+                return flag1 == flag2
+        return False
+
+    def is_header(self):
+        return True
 
     @property
     def flag(self):
@@ -338,13 +374,16 @@ class Typed(object):
         return cls._types[type]
 
 
-class Condition(Commentable, Typed):
+class Condition(BaseObject, Commentable, Typed):
     """Base class for procmail's conditions"""
 
     _types = {}
 
     def render(self, ident=0):
         return u"%s* %s%s" % ("    " * ident, self.pre_render(), self._get_comment())
+
+    def is_condition(self):
+        return True
 
     def is_empty(self):
         return False
@@ -383,6 +422,11 @@ class ConditionEmpty(Condition):
     def __init__(self, comment=None):
         self.comment = comment
 
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return y.type == self.type
+        return False
+
     def pre_render(self):
         return u""
 
@@ -399,6 +443,11 @@ class ConditionShell(Condition):
     def __init__(self, cmd, comment=None):
         self.cmd = cmd
         self.comment = comment
+
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return y.type == self.type and self.cmd == y.cmd
+        return False
 
     def pre_render(self):
         return u"? %s" % self.cmd
@@ -418,6 +467,11 @@ class ConditionSize(Condition):
         self.size = size
         self.comment = comment
 
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return y.type == self.type and self.sign == y.sign and self.size == y.size
+        return False
+
     def pre_render(self):
         return u"%s %s" % (self.sign, self.size)
 
@@ -434,6 +488,11 @@ class ConditionRegex(Condition):
     def __init__(self, regex, comment=None):
         self.regex = regex
         self.comment = comment
+
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return y.type == self.type and self.regex == y.regex
+        return False
 
     def pre_render(self):
         return u"%s" % self.regex
@@ -452,6 +511,15 @@ class ConditionVariable(Condition):
         self.variable = variable
         self.condition = condition
         self.comment = comment
+
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return (
+                y.type == self.type
+                and self.variable == y.variable
+                and self.condition == y.condition
+            )
+        return False
 
     def pre_render(self):
         return u"%s ?? %s" % (self.variable, self.condition.pre_render())
@@ -472,6 +540,11 @@ class ConditionNegate(Condition):
     def __init__(self, condition, comment=None):
         self.condition = condition
         self.comment = comment
+
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return y.type == self.type and self.condition == y.condition
+        return False
 
     def pre_render(self):
         return u"! %s" % self.condition.pre_render()
@@ -503,6 +576,11 @@ class ConditionSubstitute(Condition):
         self.condition = condition
         self.comment = comment
 
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return y.type == self.type and self.condition == y.condition
+        return False
+
     def pre_render(self):
         return u"$ %s" % self.condition.pre_render()
 
@@ -533,6 +611,16 @@ class ConditionScore(Condition):
         self.condition = condition
         self.comment = comment
 
+    def __eq__(self, y):
+        if isinstance(y, Condition):
+            return (
+                y.type == self.type
+                and self.x == y.x
+                and self.y == y.y
+                and self.condition == y.condition
+            )
+        return False
+
     def pre_render(self):
         return u"%s ^ %s %s" % (self.x, self.y, self.condition.pre_render())
 
@@ -543,10 +631,13 @@ class ConditionScore(Condition):
         return True
 
 
-class Action(Typed):
+class Action(BaseObject, Typed):
     """Base class for procmail's actions"""
 
     _types = {}
+
+    def is_action(self):
+        return True
 
     def is_save(self):
         return False
@@ -571,6 +662,11 @@ class ActionForward(Action, Commentable):
         self.recipients = [] if recipients is None else recipients
         self.comment = comment
 
+    def __eq__(self, y):
+        if isinstance(y, Action):
+            return y.type == self.type and set(self.recipients) == set(y.recipients)
+        return False
+
     def render(self, ident=0):
         return u"%s! %s%s" % ("    " * ident, " ".join(self.recipients), self._get_comment())
 
@@ -594,6 +690,11 @@ class ActionShell(Action, Commentable):
         self.cmd = cmd
         self.variable = variable
         self.comment = comment
+
+    def __eq__(self, y):
+        if isinstance(y, Action):
+            return y.type == self.type and self.cmd == y.cmd and self.variable == y.variable
+        return False
 
     def is_shell(self):
         return True
@@ -628,6 +729,11 @@ class ActionSave(Action, Commentable):
         self.path = path
         self.comment = comment
 
+    def __eq__(self, y):
+        if isinstance(y, Action):
+            return y.type == self.type and self.path == y.path
+        return False
+
     def is_save(self):
         return True
 
@@ -644,6 +750,11 @@ class ActionNested(Action, list):
     """
 
     type = "nested"
+
+    def __eq__(self, y):
+        if isinstance(y, Action):
+            return y.type == self.type and super(ActionNested, self).__eq__(y)
+        return False
 
     def render(self, ident=0):
         return u"%s{\n%s\n%s}\n" % (
@@ -665,7 +776,6 @@ class Recipe(Statement, MetaCommentable):
 
     _recipe_id = None
 
-
     def __init__(
         self, header, action, conditions=None, meta_title=None,
         meta_comment=None, comment_condition=None, comment_action=None,
@@ -679,6 +789,15 @@ class Recipe(Statement, MetaCommentable):
         self.meta_custom = meta_custom
         self.comment_condition = comment_condition
         self.comment_action = comment_action
+
+    def __eq__(self, y):
+        if isinstance(y, Recipe):
+            return (
+                self.header == y.header
+                and self.action == y.action
+                and self.conditions == y.conditions
+            )
+        return False
 
     def is_recipe(self):
         return True
