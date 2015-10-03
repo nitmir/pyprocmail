@@ -24,6 +24,8 @@ unicodePrintablesSpaces = unicodePrintables + unicodeSpaces
 
 NL = Suppress(LineEnd())
 CR = Suppress(Literal("\r"))
+escape = Literal('\\')
+continuation = escape + LineEnd()
 
 # Variable names that support affectation
 # use sames rules thant for C languge
@@ -146,9 +148,24 @@ colon_line = (
     ).setResultsName('header')
 
 
+regex_line = (
+    Word(unicodePrintablesSpaces, excludeChars='\\')
+    + ZeroOrMore(
+        ~NL + escape
+        + ~NL + Word(unicodePrintablesSpaces, excludeChars='\\')
+    )
+)
+regex = Combine(
+    regex_line
+    + ZeroOrMore(
+        ~NL + continuation.suppress()
+        + ~NL + ZeroOrMore(~NL + continuation.suppress())
+        + ~NL + regex_line
+    )
+)
 # Definition of a condition
 condition = Forward()
-condition_regex = Word(unicodePrintablesSpaces)
+condition_regex = regex
 condition_size = (Literal('>') | Literal('<')).setResultsName("sign") \
     + ~NL + Word(nums).setResultsName("size")
 condition_shell = Literal('?').suppress() + ~NL + Word(unicodePrintablesSpaces)
