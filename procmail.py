@@ -855,11 +855,12 @@ class ProcmailRc(list):
     def write(self, file, charset="utf-8"):
         data = self.render()
         # check we can still parse the redered data
-        parseString(data)
+        new_procmailrc = parseString(data)
         data = data.encode(charset)
         with open(file + '.new', 'w') as f:
             f.write(data)
         os.rename(file + '.new', file)
+        return new_procmailrc
 
 
 def _parse_comment(p):
