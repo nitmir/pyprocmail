@@ -805,17 +805,83 @@ class Recipe(Statement, MetaCommentable):
     def __getitem__(self, index):
         return self.action[index]
 
+    def _set_id(self):
+        set_id(self, self.id + ".", self._recipe_id + ".")
+
     def __setitem__(self, index, value):
+        self._test_item(value, "set")
         self.action[index] = value
+        self._set_id()
 
     def __len__(self):
+        if not self.action.is_nested():
+            raise ValueError("can only compute length if action is nested")
         return len(self.action)
 
-    def remove(self, item):
-        return self.action.remove(item)
-
     def append(self, item):
-        return self.action.append(item)
+        self._test_item(item, "append")
+        self.action.append(item)
+        self._set_id()
+        return item.id
+
+    def remove(self, item):
+        self._test_item(item, "remove")
+        ret = self.action.remove(item)
+        self._set_id()
+        return ret
+
+    def extend(self, stmts):
+        stmt_list = list(stmts)
+        if not self.action.is_nested():
+            raise ValueError("can only extend if action is nested")
+        if not all(isinstance(item, Statement) for item in stmt_list):
+            raise ValueError("can only extend with Statement")
+        ret = self.action.extend(stmt_list)
+        self._set_id()
+        return ret
+
+    def index(self, item, *args, **kwargs):
+        if not self.action.is_nested():
+            raise ValueError("can only index if action is nested")
+        return self.action.index(item, *args, **kwargs)
+
+    def count(self):
+        if not self.action.is_nested():
+            raise ValueError("can only count if action is nested")
+        return self.action.count()
+
+    def insert(self, index, item):
+        self._test_item(item, "insert")
+        self.action.insert(index, item)
+        self._set_id()
+        return item.id
+
+    def pop(self, *args, **kwargs):
+        if not self.action.is_nested():
+            raise ValueError("can only pop if action is nested")
+        ret = self.action.pop(*args, **kwargs)
+        self._set_id()
+        return ret
+
+    def reverse(self):
+        if not self.action.is_nested():
+            raise ValueError("can only reverse if action is nested")
+        ret = self.action.reverse()
+        self._set_id()
+        return ret
+
+    def sort(self):
+        if not self.action.is_nested():
+            raise ValueError("can only sort if action is nested")
+        ret = self.action.sort()
+        self._set_id()
+        return ret
+
+    def _test_item(self, item, action):
+        if not self.action.is_nested():
+            raise ValueError("can only %s if action is nested" % action)
+        if not isinstance(item, Statement):
+            raise ValueError("can only %s Statement" % action)
 
     def render(self, ident=0):
         s = []
@@ -847,7 +913,49 @@ class ProcmailRc(list):
 
     def __init__(self, *args, **kwargs):
         super(ProcmailRc, self).__init__(*args, **kwargs)
+        self._set_id()
+
+    def _set_id(self):
         set_id(self)
+
+    def _do(self, action, *items):
+        if not isinstance(items[-1], Statement):
+            raise ValueError("can only process Statement")
+        ret = getattr(super(ProcmailRc, self), action)(*items)
+        self._set_id()
+        return items[-1].id, ret
+
+    def append(self, item):
+        return self._do('append', item)[0]
+
+    def remove(self, item):
+        return self._do('append', item)[1]
+
+    def insert(self, index, item):
+        return self._do('append', index, item)[0]
+
+    def extend(self, stmts):
+        stmt_list = list(stmts)
+        if not all(isinstance(item, Statement) for item in stmt_list):
+            raise ValueError("can only process Statement")
+        ret = super(ProcmailRc, self).extend(stmt_list)
+        self._set_id()
+        return ret
+
+    def pop(self, *args, **kwargs):
+        ret = super(ProcmailRc, self).pop(*args, **kwargs)
+        self._set_id()
+        return ret
+
+    def reverse(self):
+        ret = super(ProcmailRc, self).reverse()
+        self._set_id()
+        return ret
+
+    def sort(self):
+        ret = super(ProcmailRc, self).sort()
+        self._set_id()
+        return ret
 
     def render(self):
         return u"\n".join(s.render() for s in self)
