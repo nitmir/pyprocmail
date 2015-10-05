@@ -151,7 +151,7 @@ colon_line = (
 regex_line = (
     Word(unicodePrintablesSpaces, excludeChars='\\')
     + ZeroOrMore(
-        ~NL + escape
+        OneOrMore(~NL + escape)
         + ~NL + Word(unicodePrintablesSpaces, excludeChars='\\')
     )
 )
