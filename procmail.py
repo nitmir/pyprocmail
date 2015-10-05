@@ -935,21 +935,26 @@ class ProcmailRc(list):
     def _set_id(self):
         set_id(self)
 
-    def _do(self, action, *items):
-        if not isinstance(items[-1], Statement):
-            raise ValueError("can only process Statement")
-        ret = getattr(super(ProcmailRc, self), action)(*items)
-        self._set_id()
-        return items[-1].id, ret
-
     def append(self, item):
-        return self._do('append', item)[0]
+        if not isinstance(item, Statement):
+            raise ValueError("can only process Statement")
+        super(ProcmailRc, self).append(item)
+        self._set_id()
+        return item.id
 
     def remove(self, item):
-        return self._do('append', item)[1]
+        if not isinstance(item, Statement):
+            raise ValueError("can only process Statement")
+        ret = super(ProcmailRc, self).remove(item)
+        self._set_id()
+        return ret
 
     def insert(self, index, item):
-        return self._do('append', index, item)[0]
+        if not isinstance(item, Statement):
+            raise ValueError("can only process Statement")
+        super(ProcmailRc, self).insert(index, item)
+        self._set_id()
+        return item.id
 
     def extend(self, stmts):
         stmt_list = list(stmts)
