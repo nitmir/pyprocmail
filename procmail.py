@@ -133,10 +133,13 @@ class Comment(Statement):
 class Assignment(Statement, Commentable, MetaCommentable):
     """Variable names are customarily upper case."""
     def __init__(
-        self, variables, comment=None, meta_title=None,
+        self, variables=None, comment=None, meta_title=None,
         meta_comment=None, meta_custom=None
     ):
-        self.variables = variables  # list of (variable_name, variable_value)
+        if variables is None:
+            self.variables = []
+        else:
+            self.variables = variables  # list of (variable_name, variable_value, quote)
         self.comment = comment
         self.meta_comment = meta_comment
         self.meta_title = meta_title
