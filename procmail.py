@@ -87,6 +87,15 @@ class Comment(Statement):
     def __init__(self, str):
         self.str = str
 
+    def __eq__(self, y):
+        if isinstance(y, Comment):
+            if y.str == self.str:
+                if self.id is not None and y.id is not None:
+                    return self.id == y.id
+                else:
+                    return True
+        return False
+
     def render(self, ident=0):
         return u"%s# %s" % ("    " * ident, self.str)
 
@@ -114,7 +123,11 @@ class Assignment(Statement, Commentable, MetaCommentable):
 
     def __eq__(self, y):
         if isinstance(y, Assignment):
-            return y.variables == self.variables
+            if y.variables == self.variables:
+                if self.id is not None and y.id is not None:
+                    return self.id == y.id
+                else:
+                    return True
         return False
 
     def render(self, ident=0):
@@ -792,11 +805,15 @@ class Recipe(Statement, MetaCommentable):
 
     def __eq__(self, y):
         if isinstance(y, Recipe):
-            return (
+            if (
                 self.header == y.header
                 and self.action == y.action
                 and self.conditions == y.conditions
-            )
+            ):
+                if self.id is not None and y.id is not None:
+                    return self.id == y.id
+                else:
+                    return True
         return False
 
     def is_recipe(self):
