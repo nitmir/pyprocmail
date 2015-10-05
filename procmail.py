@@ -959,6 +959,20 @@ class ProcmailRc(list):
     def _set_id(self):
         set_id(self)
 
+    def __getitem__(self, id):
+        if id == "":
+            return self
+        elif isinstance(id, int):
+            return super(ProcmailRc, self).__getitem__(id)
+        ids = id.split('.')
+        r = self
+        try:
+            for i in ids:
+                r = r[int(i)]
+        except (TypeError, IndexError):
+            raise KeyError(id)
+        return r
+
     def append(self, item):
         if not isinstance(item, Statement):
             raise ValueError("can only process Statement")
