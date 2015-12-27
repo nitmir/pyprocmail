@@ -9,3 +9,4 @@
 # Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 #
 # (c) 2015 Valentin Samir
+from procmail import parse, parseString
