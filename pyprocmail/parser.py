@@ -27,6 +27,24 @@ CR = Suppress(Literal("\r"))
 escape = Literal('\\')
 continuation = escape + LineEnd()
 
+# A string with no \ at the end of a line
+escaped_line = (
+    Word(unicodePrintablesSpaces, excludeChars='\\')
+    + ZeroOrMore(
+        OneOrMore(~NL + escape)
+        + ~NL + Word(unicodePrintablesSpaces, excludeChars='\\')
+    )
+)
+# A string possibly on multiple line with newline characters escaped by \
+escaped_string = Combine(
+    escaped_line
+    + ZeroOrMore(
+        ~NL + continuation.suppress()
+        + ~NL + ZeroOrMore(~NL + continuation.suppress())
+        + ~NL + escaped_line
+    )
+)
+
 # Variable names that support affectation
 # use sames rules thant for C languge
 variable = Word(alphas + '_', alphanums + '_')
@@ -83,9 +101,9 @@ start_line = Optional((ZeroOrMore(Word(' \t'))).suppress())
 assignement = variable + Optional(
     ~NL + Literal('=').suppress() +
     Optional(~NL + (
-        QuotedString('"', "\\").setResultsName('double_quote')
-        | QuotedString("'", "\\").setResultsName('single_quote')
-        | QuotedString("`", "\\").setResultsName('shell_eval')
+        QuotedString('"', "\\", multiline=True).setResultsName('double_quote')
+        | QuotedString("'", "\\", multiline=True).setResultsName('single_quote')
+        | QuotedString("`", "\\", multiline=True).setResultsName('shell_eval')
         | Word(unicodePrintables).setResultsName('no_quote')
     ))
 )
@@ -148,24 +166,9 @@ colon_line = (
     ).setResultsName('header')
 
 
-regex_line = (
-    Word(unicodePrintablesSpaces, excludeChars='\\')
-    + ZeroOrMore(
-        OneOrMore(~NL + escape)
-        + ~NL + Word(unicodePrintablesSpaces, excludeChars='\\')
-    )
-)
-regex = Combine(
-    regex_line
-    + ZeroOrMore(
-        ~NL + continuation.suppress()
-        + ~NL + ZeroOrMore(~NL + continuation.suppress())
-        + ~NL + regex_line
-    )
-)
 # Definition of a condition
 condition = Forward()
-condition_regex = regex
+condition_regex = escaped_string
 condition_size = (Literal('>') | Literal('<')).setResultsName("sign") \
     + ~NL + Word(nums).setResultsName("size")
 condition_shell = Literal('?').suppress() + ~NL + Word(unicodePrintablesSpaces)
@@ -196,7 +199,7 @@ for char in ['{', '!', '|', '*']:
 
 action_forward = Literal('!').suppress() + ~NL + OneOrMore(~NL + Word(unicodePrintables))
 action_shell = Optional(variable.setResultsName("variable") + ~NL + Literal('=')) \
-    + ~NL + Literal('|') + ~NL + Word(unicodePrintablesSpaces).setResultsName("cmd")
+    + ~NL + Literal('|') + ~NL + escaped_string.setResultsName("cmd")
 action_save = Word(action_first_char, unicodePrintablesSpaces)
 action_list = Literal('{').suppress() + statements + Literal('}').suppress()
 action = (

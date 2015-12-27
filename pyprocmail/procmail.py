@@ -1055,7 +1055,7 @@ def _parse_assignements(p):
             else:
                 quote = None
             if len(assignment) >= 2:
-                variables.append((assignment[0], assignment[1], quote))
+                variables.append((assignment[0], assignment[1].replace("\\\n",""), quote))
             else:
                 variables.append((assignment[0], None, quote))
     return Assignment(
