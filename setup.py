@@ -10,7 +10,7 @@ data_files = []
 
 setup(
     name='pyprocmail',
-    version='0.1',
+    version='0.1.1',
     description=DESC,
     long_description=README,
     author='Valentin Samir',
@@ -23,7 +23,6 @@ setup(
     },
     keywords=['procmail', 'parser', 'procmailrc', 'AST', 'tree', 'syntax'],
     classifiers=[
-        'Environment :: No Input/Output (Daemon)',
         'Intended Audience :: Developers',
         'License :: OSI Approved :: GNU General Public License v3 (GPLv3)',
         'Programming Language :: Python',
