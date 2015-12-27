@@ -1,0 +1,219 @@
+#########################################
+#             subscribe ml              #
+#  add new subscriber to the list file  #
+#########################################
+:0
+* ^To:.*owner-ml@your.domain
+* ^Subject:.*(s|S)ubscribe *ml
+* !^X-Loop: owner-ml@your.domain
+* !^Subject:.*Re:
+* !^FROM_DAEMON
+{
+    WELCOMEFILE=$PMDIR/ml/ml_welcome.txt      # welcome message file
+    LISTFILE=$PMDIR/ml/ml.list                # e-mail address file
+    TMPFILE=$PMDIR/ml/ml.list.tmp
+    FROMADDR=`formail -xFrom:`
+
+    :0 fhw
+    * ? test -f $LISTFILE
+    | (formail -xFrom: \
+    | sed -e 's/^ //' \
+      -e '/.*/y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+    >> $LISTFILE) ; \
+    sort -f $LISTFILE > $TMPFILE ; \
+    uniq $TMPFILE > $LISTFILE
+
+    :0 ah
+    * ? test -f $TMPFILE
+    | (formail -A "Precedence: list" \
+    -I "To: $FROMADDR" \
+    -I "From: owner-ml@your.domain" \
+    -I "Subject: Welcome to our mailing list !" \
+    | cat - $WELCOMEFILE 2>&1 | $SENDMAIL -fowner-ml -oi -t) ; \
+    rm -f $TMPFILE                      # -f option can be used if you are
+                                        # a trusted user, and an alias
+                                        # `owner-ml: your_logname, nobody'
+                                        # should exist in /usr/lib/aliases
+
+}
+
+############################################
+#               signoff ml                 #
+#  remove a subscriber from the list file  #
+############################################
+:0
+* ^To:.*owner-ml@your.domain
+* ^Subject:.*(s|S)ignoff *ml
+* !^X-Loop: owner-ml@your.domain
+* !^Subject:.*Re:
+* !^FROM_DAEMON
+{
+    LEAVEFILE=$PMDIR/ml/ml_leave.txt      # good-bye message file
+    LISTFILE=$PMDIR/ml/ml.list
+    TMPFILE=$PMDIR/ml/ml.list.tmp
+    FROMADDR=`formail -xFrom:`
+    OLDADDR=`echo "$FROMADDR" \
+    | sed -e '/.*/y/abcdefghijklmnopqrstuvwxyz/ABCDEFGHIJKLMNOPQRSTUVWXYZ/' \
+          -e 's/.* <//' -e 's/>//' -e 's/ (.*)//' -e 's/^ //'`
+    DUMMY=`sed -e '/'$OLDADDR'/d' $LISTFILE > $TMPFILE`
+
+    :0 ah
+    * ? test -s $TMPFILE
+    | (formail -A "Precedence: list" \
+    -I "To:$FROMADDR" \
+    -I "From: owner-ml@your.domain" \
+    -I "Subject: See you again !" \
+    | cat - $LEAVEFILE | $SENDMAIL -fowner-ml -oi -t) ; \
+    rm -f $LISTFILE ; mv $TMPFILE $LISTFILE
+}
+
+#################################
+#       send help file          #
+#################################
+:0
+* ^To:.*owner-ml@your.domain
+* ^Subject:.*(s|S)end *(h|H)elp.*
+* !^X-Loop: owner-ml@your.domain
+* !^Subject:.*Re:
+* !^FROM_DAEMON
+{
+    HELPFILE=$PMDIR/ml/ml_help.txt        # help file for the list
+
+    :0 ah
+    * ? test -f $HELPFILE
+    | formail -rA "X-Loop: owner-ml@your.domain" \
+    -A "Precedence: list" \
+    -I "From: owner-ml@your.domain" \
+    -I "Subject: File: HELP" \
+    | cat - $HELPFILE | $SENDMAIL -fowner-ml -oi -t
+}
+
+#################################
+#        send list file         #
+#################################
+:0
+* ^To:.*owner-ml@your.domain
+* ^Subject:.*(s|S)end *(l|L)ist.*
+* !^X-Loop: owner-ml@your.domain
+* !^Subject:.*Re:
+* !^FROM_DAEMON
+{
+    LISTFILE=$PMDIR/ml/ml.list
+
+    :0 ah
+    * ? test -f $LISTFILE
+    | formail -rA "X-Loop: owner-ml@your.domain" \
+    -A "Precedence: list" \
+    -I "From: owner-ml@your.domain" \
+    -I "Subject: File: SUBSCRIBER LIST" \
+    | cat - $LISTFILE | $SENDMAIL -fowner-ml -oi -t
+}
+
+#################################
+#       send archive of ML      #
+#################################
+:0
+* ^To:.*owner-ml@your.domain
+* ^Subject:.*(s|S)end *(a|A)rchive.*
+* !^X-Loop: owner-ml@your.domain
+* !^Subject:.*Re:
+* !^FROM_DAEMON
+{
+    ARCHIVEFILE=$PMDIR/ml/ml_mbox        # archived mbox of the list
+
+    :0 ah
+    * ? test -f $ARCHIVEFILE
+    | formail -rA "X-Loop: owner-ml@your.domain" \
+    -A "Precedence: list" \
+    -I "From: owner-ml@your.domain" \
+    -I "Subject: File: ML ARCHIVE" \
+    | cat - $ARCHIVEFILE | $SENDMAIL -fowner-ml -oi -t
+}
+
+#################################
+#        Unknown command        #
+#################################
+:0
+* ^To:.*owner-ml@your.domain
+* !^X-Loop: owner-ml@your.domain
+* !^FROM_DAEMON
+{
+    HELPFILE=$PMDIR/ml/ml_help.txt
+    COMMAND=`formail -xSubject:`
+
+    :0 ah
+    * ? test -f $HELPFILE
+    | (formail -rA "X-Loop: owner-ml@your.domain" \
+    -A "Precedence: list" \
+    -I "From: owner-ml@your.domain" \
+    -I "Subject: Unknown command" ; \
+    echo "> $COMMAND" ; \
+    echo "The command you sent was not executable." ; \
+    echo "Here is the help for this list." ; \
+    echo "" ; \
+    cat - $HELPFILE) | $SENDMAIL -fowner-ml -oi -t
+}
+
+#########################################
+#         mailing list                  #
+#         initial $NUM = "111000"       #
+#########################################
+:0
+* ^To:.*ml@your.domain
+* ^Sender: owner-ml@your.domain
+/dev/null
+
+:0
+* ^To:.*ml@your.domain
+* !^X-Loop: ml@your.domain
+* !^FROM_DAEMON
+{
+    LOCKTIMEOUT=2048
+    TIMEOUT=1920
+    SUSPEND=32
+    LINEBUF=20480
+
+    CNTFILE=$PMDIR/ml/ml.num
+    LOCKFILE=$CNTFILE$LOCKEXT
+    DUMMY=`lockfile -l2048 -s32 $LOCKFILE`  # lock the count file
+    NUM=`cat $PMDIR/ml/ml.num`              # get the serial number
+    NUM=`echo "$NUM + 1" | /bin/bc`         # then increase it by one
+    DUMMY=`echo "$NUM" > $CNTFILE \         # increment the serial number
+           && rm -f $LOCKFILE`              # unlock the count file
+                                            # make sure that you have installed
+                                            # a 'lockfile' binary which is part
+                                            # of the procmail package.
+    LISTFILE=$PMDIR/ml/ml.list
+    FROMADDR=`formail -xFrom: \
+    | sed -e 's/.* <//' -e 's/>//' -e 's/ (.*)//'`
+    SUBJECT=`formail -xSubject:`
+    ISMEMBER=`grep -i "${FROMADDR}" $LISTFILE`
+    CNT=`echo "$NUM" | sed -e 's/^[1-9][1-9][0-9]//'`
+    NSUBJECT=`echo "$SUBJECT" | sed -e 's/^.*[0-9][0-9][0-9]\]//'`
+    NSUBJECT="[ml $CNT]$NSUBJECT"          # add list name & serial number
+
+    :0 hw: $LOCKFILE                       # if not from a subscriber
+    * ? test -z "$ISMEMBER"                # return an error message
+    | (formail -r -A "Precedence: junk" \
+    -I "From: owner-ml@your.domain" \
+    -I "Subject: Re: $SUBJECT - Undeliverable" \
+    -A "X-Loop: ml@your.domain" ; \
+    echo "The mail you sent could not be delivered." ; \
+    echo "Reason: Your are not a subscriber of this list.") \
+    | $SENDMAIL -oi -t ; \
+    echo "$NUM - 1" | /bin/bc > $CNTFILE   # decrement the serial number
+
+    :0 wc
+    * ? test -n "$ISMEMBER"
+    | (formail -A "X-Loop: ml@your.domain" \
+    -A "Precedence: junk" \
+    -I "Reply-To: ml@your.domain" \
+    -I "Sender: owner-ml@your.domain" \
+    -I "Subject: $NSUBJECT") \
+    | $SENDMAIL -fowner-ml `cat $LISTFILE`
+
+    # archive the message shorter than 1000 bytes
+    :0 a:
+    * < 1000
+    ml_mbox
+}

@@ -1,0 +1,130 @@
+################################################################
+#                                                              #
+#   some examples of procmailrc                                #
+#   (c) 1996-1998 Tadashi Kawaguchi <http://www.erehwon.org/>  #
+#   Created on: 5/30/96    Last Modified on: 10/18/98          #
+#                                                              #
+################################################################
+
+# Set path #
+PATH=/bin:/usr/bin:/usr/local/bin:/opt/local/bin/:$HOME/bin:$HOME:
+SENDMAIL=/usr/lib/sendmail
+SHELL=/bin/sh
+# Set on when debugging #
+#VERBOSE=on
+VERBOSE=off
+# Directory for storing procmail log and rc files
+PMDIR=$HOME/.procmail
+LOGFILE=$PMDIR/log
+# Set environment variables #
+UMASK=077
+LOCKTIMEOUT=1024
+TIMEOUT=960
+SUSPEND=16
+LINEBUF=4096
+# rc files to be included #
+INCLUDERC=$PMDIR/rc.sinkspam
+INCLUDERC=$PMDIR/rc.autoinfo
+INCLUDERC=$PMDIR/rc.autosend
+INCLUDERC=$PMDIR/rc.ftpmail
+INCLUDERC=$PMDIR/rc.mllist
+
+#########################################################################
+#                     forward and aliases                               #
+#   You must change dummy addresses like "your_login_name@your.domain"  #
+#   to the real mail address.                                           #
+#########################################################################
+# forward to your_logname@other.domain
+:0
+* ^TO.*your_login_name@hostname.domain
+! your_logname@other.domain
+
+#########################################
+#               aliases                 #
+#########################################
+:0
+* ^TO.*your_login_name@your.domain.*
+! your_logname@other.domain
+
+####### aliases for administrator ########
+:0
+* ^TO.*(P|p|H|h)ostmaster@your.domain.*
+! your_logname@other.domain
+
+:0
+* ^TO.*mailmaster@your.domain.*
+! your_logname@other.domain
+
+:0
+* ^TO.*webmaster@your.domain.*
+! your_logname@other.domain
+
+:0
+* ^TO.*ftpmaster@your.domain.*
+! your_logname@other.domain
+
+:0
+* ^TO.*mlmaster@your.domain
+! your_logname@other.domain
+
+########### aliases for staff ############
+:0
+* ^TO.*somebody_1@your.domain.*
+! foo@bar.another.domain
+
+#########################################
+#             other aliases             #
+#########################################
+########### from remote host ############
+:0
+* ^TO.*your_login_name@host
+! your_logname@other.domain
+
+########### from local host #############
+:0
+* ^TO.*your_login_name
+! your_logname@other.domain
+
+######### `To: foo@someother.domain' ########
+:0
+* ^Received:.*hostname.domain.*for .(alias-1|alias-2|...|alias-n)@your.domain.*$
+! your_logname@other.domain
+
+########### To unknown users ############
+:0
+* ^Received:.*hostname.domain.*for.*@your.domain.*$
+* !^X-Loop: postmaster@your.domain
+* !^FROM_DAEMON
+{
+    TMPFILE=tmp.$$
+    TOADDRESS=`formail -uReceived: | formail -xReceived: \
+    | sed -e 's/^.*for <//' -e 's/>;.*$//'`
+
+    MAILDIR=$PMDIR/unknown_user
+
+    :0 ac:
+    $TMPFILE
+
+    :0 ah
+    | (formail -rA "X-Loop: postmaster@your.domain" \
+    -I "Precedence: junk" \
+    -I "From: postmaster@your.domain" \
+    -I "Subject: Returned Mail: Undeliverable" ; \
+    echo "The mail you sent could not be delivered to:" ; \
+    echo "$TOADDRESS is not a known user." ; \
+    echo "" ; \
+    echo "The first 100 lines for the original note follow..." ; \
+    echo "" ; \
+    head -100 ./$TMPFILE) \
+    | $SENDMAIL -oi -t -f'postmaster@your.domain'; \
+    rm -f $TMPFILE
+}
+
+########### from mailer-daemons #########
+:0:
+* ^FROM_MAILER
+$PMDIR/daemon_mbox
+
+########### trash other junk mails #########
+:0
+/dev/null
