@@ -10,7 +10,7 @@ Pyprocmail
 
 Pyprocmail is a python parser and AST definitions for procmail's procmailrc files.
 
-The grammar of procmailrc files is build after `quickref.html <http://www.zer0.org/procmail/quickref.html>`_.
+The grammar of procmailrc files is build after `quickref.html <http://porkmail.org/era/procmail/quickref.html>`_.
 
 
 Installation
